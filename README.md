@@ -54,4 +54,4 @@ I think it's safe to say that forums, the medium that has held countless communi
 Pull requests are welcome. Please open an issue first to discuss what you would like to change.
 
 ## License
-GPL v3
+GNU AGPL v3
