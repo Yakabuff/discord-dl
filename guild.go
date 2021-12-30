@@ -14,9 +14,11 @@ func guild_download(dg *discordgo.Session, a args) error {
 	}
 	//download messages from every channel
 	for _, c := range channels{
+		a.channel = c.ID
 		if c.Type == discordgo.ChannelTypeGuildText{
-			log.Printf("Archiving %s %s", a.guild, c.ID)
-			err := download_range_date(dg, a.after, a.before, c.ID, a.guild)
+			
+			log.Printf("Archiving guild: %s channel: %s", a.guild, a.channel)
+			err := channel_download(dg, a)
 			if err != nil{
 				return err;
 			}

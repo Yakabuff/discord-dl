@@ -10,4 +10,4 @@ clean:
 	go clean
 	rm bin/${BINARY_NAME}
 	rm bigbrother.db
-	rm media/*
+	rm -r media/*

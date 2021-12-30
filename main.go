@@ -55,7 +55,7 @@ func main(){
       fmt.Println("Selected input mode")
    case GUILD:
       fmt.Println("Archiving guild")
-      err := guild_download(dg,*a)
+      err := guild_download(dg, *a)
       if err != nil{
          log.Println(err)
       }

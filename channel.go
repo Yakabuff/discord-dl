@@ -7,6 +7,7 @@ import(
 	"strconv"
 	// "time"
 	"log"
+	//"github.com/mattn/go-sqlite3"
 )
 
 func channel_download(dg *discordgo.Session, a args) error{
@@ -17,6 +18,11 @@ func channel_download(dg *discordgo.Session, a args) error{
 	// case 5: contains no flag
 
 	c, err := dg.Channel(a.channel)
+
+	if c == nil{
+		return nil;
+	}
+
 	guildID := c.GuildID
 	if err != nil{
 		return err
@@ -25,18 +31,18 @@ func channel_download(dg *discordgo.Session, a args) error{
 	if c.Type == discordgo.ChannelTypeGuildText{
 			
 		if a.fast_update == true{
-			fmt.Println("Fast update")
+			download_messages(dg, a.after, a.before, a.channel, guildID, true);
 		}else{
 			//Both before and after flags
 			if a.before != "" && a.after != ""{
 				if strings.Contains(a.before, "-") && strings.Contains(a.before, "-"){
 					download_range_date(dg, a.after, a.before, a.channel, guildID);
 				}else{
-					download_messages(dg, a.after, a.before, a.channel, guildID);
+					download_messages(dg, a.after, a.before, a.channel, guildID, false);
 				}
 			}else if a.before == "" && a.after == ""{
 				//Both before and after empty
-				download_messages(dg, "","", a.channel, guildID);
+				download_messages(dg, "","", a.channel, guildID, false);
 			}else{
 				//Before empty OR after empty
 				if strings.Contains(a.before, "-") && a.after == ""{
@@ -44,9 +50,9 @@ func channel_download(dg *discordgo.Session, a args) error{
 				}else if strings.Contains(a.after, "-") && a.before == ""{
 					download_range_date(dg, a.after, a.before, a.channel, guildID);
 				}else if !strings.Contains(a.after, "-") && a.before == ""{
-					download_messages(dg, a.after, a.before, a.channel, guildID);
+					download_messages(dg, a.after, a.before, a.channel, guildID, false);
 				}else{
-					download_messages(dg, a.after, a.before, a.channel, guildID);
+					download_messages(dg, a.after, a.before, a.channel, guildID, false);
 				}
 			}
 		}
@@ -70,9 +76,9 @@ func download_range_date(dg *discordgo.Session, after string, before string, cha
 			after_time, _ := DateToTime(after)
 			at := ((after_time.Unix()-1)*1000 - 1420070400000) << 22
 			after_id := strconv.Itoa(int(at))
-			download_messages(dg, before_id, after_id, channel_id, guild_id)
+			download_messages(dg, before_id, after_id, channel_id, guild_id, false)
 		}else{
-			download_messages(dg, before_id, "", channel_id, guild_id)
+			download_messages(dg, before_id, "", channel_id, guild_id, false)
 		}
 		
 	}else{
@@ -81,16 +87,16 @@ func download_range_date(dg *discordgo.Session, after string, before string, cha
 			fmt.Println(after_time)
 			at := ((after_time.Unix()-1)*1000 - 1420070400000) << 22
 			after_id := strconv.Itoa(int(at))
-			download_messages(dg, "", after_id, channel_id, guild_id)
+			download_messages(dg, "", after_id, channel_id, guild_id, false)
 		}else{
-			download_messages(dg, "", "", channel_id, guild_id)
+			download_messages(dg, "", "", channel_id, guild_id, false)
 		}
 	}
 
 	return nil;
 }
 
-func download_messages(dg *discordgo.Session, before_id string, after_id string, channel_id string, guild_id string) error{
+func download_messages(dg *discordgo.Session, before_id string, after_id string, channel_id string, guild_id string, fast_update bool) error{
 	messages, error := dg.ChannelMessages(channel_id, 100, before_id, "", "")
 	var in_range bool = true
 	for len(messages) != 0 && in_range{
@@ -106,15 +112,27 @@ func download_messages(dg *discordgo.Session, before_id string, after_id string,
 					log.Printf("Downloading message %s %s %s %s %s\n", timestamp, id, content, author_id, author_username);
 					before_id = id;
 					//insert into db
-					addMessage(db, m)
+					err := addMessage(db, m, fast_update)
+					if err != nil {
+						if errors.Is(err, UniqueConstraintError){
+							return nil
+						}
+						return err
+					}
 				}else{
 					in_range = false;
 					break;
 				}
 			}else{
 				log.Printf("Downloading message %s %s %s %s %s\n", timestamp, id, content, author_id, author_username);
-				addMessage(db, m)
+				err := addMessage(db, m, fast_update)
 				before_id = id;
+				if err != nil {
+					if errors.Is(err, UniqueConstraintError){
+						return nil
+					}
+					return err
+				}
 			}
 		}
 		messages, error = dg.ChannelMessages(channel_id, 100, before_id, "", "")
@@ -124,4 +142,3 @@ func download_messages(dg *discordgo.Session, before_id string, after_id string,
 	}
 	return nil
 }
-
