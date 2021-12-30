@@ -7,6 +7,7 @@ import(
 	"database/sql"
 	"github.com/bwmarrin/discordgo"
 	"errors"
+	"github.com/mattn/go-sqlite3"
 )
 
 func init_db() (*sql.DB, error){
@@ -148,7 +149,7 @@ func createTable(db *sql.DB){
 	statement_embeds_index.Exec()
 }
 
-func addMessage(db *sql.DB, m *discordgo.Message) error{
+func addMessage(db *sql.DB, m *discordgo.Message, fast_update bool) error{
 	timestamp, _ := discordgo.SnowflakeTimestamp(m.ID)
 	timestamp_unix := timestamp.Unix()
 	id := m.ID
@@ -168,20 +169,42 @@ func addMessage(db *sql.DB, m *discordgo.Message) error{
 	}
 
 	stmt := `
-	INSERT OR IGNORE INTO messages (message_id, channel_id, guild_id, date, content, sender_id, sender_name, reply_to, edited_timestamp)
+	INSERT INTO messages (message_id, channel_id, guild_id, date, content, sender_id, sender_name, reply_to, edited_timestamp)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`
-	
+
+	//fast update, unique constraint error -> log and skip message(return nil)
+	//fast update, non unique constraint error -> return error
+	//non fast update, unique constriant error -> log, continue(do not return anything) and download edits, attachments, embeds
+	//non fast update non unique constraint error -> return error
+
 	if err != nil{
 		//If not edited, insert message in db IF it does not already exist
 		_, err := db.Exec(stmt, id, channel_id, guild_id, timestamp_unix, content, author_id, author_username, reply_to, "")
-		if err != nil{
-			log.Println("ERROR: Could not insert message (already exists?)")
-			return err
+
+		//check if fast_udpate is true. if true and error is unique constraint error, exit out.
+		if (fast_update == true && err != nil){
+			//check for unique constraint err. If found, exit program( return nil)
+			if sqliteErr, ok := err.(sqlite3.Error); ok {
+				if sqliteErr.Code == 19 && sqliteErr.ExtendedCode == 1555{
+					log.Println("Message already downloaded. Update complete")
+					return UniqueConstraintError
+				}else{
+					return err
+				}
+			}
+		}else if fast_update ==false && err != nil{
+			//check for unique constraint err. If found, exit program( return nil)
+			if sqliteErr, ok := err.(sqlite3.Error); ok {
+				if !(sqliteErr.Code == 19 && sqliteErr.ExtendedCode == 1555){
+					return err
+				}
+			}
 		}
+
 		err = addEmbed(db, m)
 		if err != nil{
-			log.Println("ERROR: Could not insert embed (already exists?)")
+			log.Println("ERROR: Could not insert embed")
 			return err
 		}
 
@@ -194,22 +217,36 @@ func addMessage(db *sql.DB, m *discordgo.Message) error{
 
 		//Insert edited message in messages table just in case it isn't already archived
 		_, err := db.Exec(stmt, id, channel_id, guild_id, timestamp_unix, content, author_id, author_username, reply_to, edited_timestamp_unix)
-		if err != nil{
-			log.Println("ERROR: Could not insert message (already exists?)")
-			log.Println(err)
-			return err
+
+		//check if fast_udpate is true. if true and error is unique constraint error, exit out.
+		if (fast_update == true && err != nil){
+			//check for unique constraint err. If found, exit program( return nil)
+			if sqliteErr, ok := err.(sqlite3.Error); ok {
+				if sqliteErr.Code == 19 && sqliteErr.ExtendedCode == 1555{
+					log.Println("Message already downloaded. Update complete")
+					return UniqueConstraintError
+				}else{
+					return err
+				}
+			}
+		}else if fast_update ==false && err != nil{
+			//check for unique constraint err. If found, exit program( return nil)
+			if sqliteErr, ok := err.(sqlite3.Error); ok {
+				if !(sqliteErr.Code == 19 && sqliteErr.ExtendedCode == 1555){
+					return err
+				}
+			}
 		}
 
 		err = addEdit(db, id, edited_timestamp_unix, content)
 		if err != nil{
-			//If primary key exists error
-			log.Println("ERROR: Could not insert edit (already exists?)")
+			log.Println("ERROR: Could not insert edit")
 			log.Println(err)
 			return err;
 		}
 		err = addEmbed(db, m)
 		if err != nil{
-			log.Println("ERROR: Could not insert embed (already exists?)")
+			log.Println("ERROR: Could not insert embed")
 			log.Println(err)
 			return err;
 		}
@@ -433,3 +470,5 @@ func addEmbed(db *sql.DB, m *discordgo.Message) error {
 	}
 	return nil;
 }
+
+var UniqueConstraintError =  errors.New("Unique constraint error")

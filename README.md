@@ -39,8 +39,8 @@ I think it's safe to say that forums, the medium that has held countless communi
         - Specify the date or message ID to get messages before
     - `--after=YYYY-MM-DD` or `--after=message_id`
         - Specify the date or message ID to get messages after
-    - `--dms=user_id`
-        - Specify user_id of the DM to archive. Not implemented
+    - `--dms=true`
+        - Downloads all DMS. Not implemented
     - `--progress`
         - Output your progress
     - `--fast-update`
