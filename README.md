@@ -40,7 +40,7 @@ I think it's safe to say that forums, the medium that has held countless communi
     - `--after=YYYY-MM-DD` or `--after=message_id`
         - Specify the date or message ID to get messages after
     - `--dms=true`
-        - Downloads all DMS. Not implemented
+        - Downloads all DM channels. 
     - `--progress`
         - Output your progress
     - `--fast-update`

@@ -22,14 +22,16 @@ func channel_download(dg *discordgo.Session, a args) error{
 	if c == nil{
 		return nil;
 	}
-
-	guildID := c.GuildID
 	if err != nil{
 		return err
 	}
-
-	if c.Type == discordgo.ChannelTypeGuildText{
-			
+	var guildID string
+	if c.Type == discordgo.ChannelTypeGuildText || c.Type == discordgo.ChannelTypeDM || c.Type == discordgo.ChannelTypeGroupDM{
+		if c.Type == discordgo.ChannelTypeGuildText {
+			guildID = c.GuildID
+		}else {
+			guildID = "DM"
+		}
 		if a.fast_update == true{
 			download_messages(dg, a.after, a.before, a.channel, guildID, true);
 		}else{

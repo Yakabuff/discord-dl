@@ -1,7 +1,6 @@
 package main
 import(
 	"github.com/bwmarrin/discordgo"
-	"fmt"
 	"os"
 	"log"
 )
@@ -9,7 +8,7 @@ func guild_download(dg *discordgo.Session, a args) error {
 	//get all channels from guild into array
 	channels, err := dg.GuildChannels(a.guild)
 	if err != nil{
-		fmt.Println("Could not find guild")
+		log.Println("Could not find guild")
 		os.Exit(1)
 	}
 	//download messages from every channel

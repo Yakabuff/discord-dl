@@ -67,6 +67,10 @@ func main(){
       }
    case DMS:
       fmt.Println("Selected DM mode")
+      err := dm_download(dg, *a)
+      if err != nil{
+         log.Println(err)
+      }
    case LISTEN:
       fmt.Println("Selected listen mode")
    }
@@ -94,7 +98,7 @@ type args struct {
    input string
    guild string
    channel string
-   dms string
+   dms bool
    listen bool
 }
 
@@ -110,7 +114,7 @@ func init_cli() *args{
    input := flag.String("i", "", "Input mode. Gets config from input file");
    guild := flag.String("guild", "", "Guild mode. Retrieves messages and channels from selected guild");
    channel := flag.String("channel", "", "Retrieves messages from selected channel");
-   dms := flag.String("dms", "", "DM mode. Retrieves selected DM conversations"); 
+   dms := flag.Bool("dms", false, "DM mode. Retrieves all DM conversations"); 
    listen := flag.Bool("listen", false, "Listens for new messages/events and archives in real time.  Can only be used with a bot account");
    flag.Parse();
 
@@ -170,7 +174,7 @@ download_media: *download_media,
    return &a;
 }
 
-func check_flag_mode(input string, guild string, channel string, dms string, listen bool) Mode{
+func check_flag_mode(input string, guild string, channel string, dms bool, listen bool) Mode{
    var count int;
    var mode Mode;
    if input != ""{
@@ -185,7 +189,7 @@ func check_flag_mode(input string, guild string, channel string, dms string, lis
       count++
       mode = CHANNEL;
    }
-   if dms != ""{
+   if dms != false{
       count++
       mode = DMS;
    }
