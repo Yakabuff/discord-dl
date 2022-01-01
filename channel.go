@@ -6,7 +6,7 @@ import(
 	"errors"
 	"strconv"
 	// "time"
-	"log"
+	// "log"
 	//"github.com/mattn/go-sqlite3"
 )
 
@@ -103,15 +103,15 @@ func download_messages(dg *discordgo.Session, before_id string, after_id string,
 	var in_range bool = true
 	for len(messages) != 0 && in_range{
 		for _, m := range messages{
-			timestamp, _ := discordgo.SnowflakeTimestamp(m.ID)
+			// timestamp, _ := discordgo.SnowflakeTimestamp(m.ID)
 			id := m.ID
-			content := m.Content;
-			author_id := m.Author.ID;
-			author_username := m.Author.Username;
+			// content := m.Content;
+			// author_id := m.Author.ID;
+			// author_username := m.Author.Username;
 			m.GuildID = guild_id
 			if after_id != ""{
 				if id > after_id {
-					log.Printf("Downloading message %s %s %s %s %s\n", timestamp, id, content, author_id, author_username);
+					// log.Printf("Downloading message %s %s %s %s %s\n", timestamp, id, content, author_id, author_username);
 					before_id = id;
 					//insert into db
 					err := addMessage(db, m, fast_update)
@@ -126,7 +126,7 @@ func download_messages(dg *discordgo.Session, before_id string, after_id string,
 					break;
 				}
 			}else{
-				log.Printf("Downloading message %s %s %s %s %s\n", timestamp, id, content, author_id, author_username);
+				// log.Printf("Downloading message %s %s %s %s %s\n", timestamp, id, content, author_id, author_username);
 				err := addMessage(db, m, fast_update)
 				before_id = id;
 				if err != nil {

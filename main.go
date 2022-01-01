@@ -10,8 +10,8 @@ import (
    "log"
    "database/sql"
    // "time"
-   // "os/signal"
-	// "syscall"
+   "os/signal"
+	"syscall"
 )
 
 type Mode int;
@@ -34,7 +34,6 @@ func main(){
    db, err = init_db();
 
    dg, err := discordgo.New(a.token);
-   //dg, err := discordgo.New("Bot "+ a.token);
 
    if err != nil{
       fmt.Println("Error creating discord session");
@@ -44,11 +43,18 @@ func main(){
 
    if err != nil{
       fmt.Println(err.Error());
+      return
    }
 
    u, err := dg.User("@me");
 
    log.Printf("discord-dl has succesfully logged into %s#%s %s\n", u.Username, u.Discriminator, u.ID);
+
+   if a.listen{
+      dg.Identify.Intents = discordgo.IntentsGuildMessages
+      log.Println("Listening...")
+      dg.AddHandler(messageListen)
+   }
 
    switch a.mode{
    case INPUT:
@@ -71,19 +77,16 @@ func main(){
       if err != nil{
          log.Println(err)
       }
-   case LISTEN:
-      fmt.Println("Selected listen mode")
    }
 
-	// Wait here until CTRL-C or other term signal is received.
-	// fmt.Println("Bot is now running.  Press CTRL-C to exit.")
-	// sc := make(chan os.Signal, 1)
-	// signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
-	// <-sc
-
+   if a.listen{
+      // Wait here until CTRL-C or other term signal is received.
+      fmt.Println("Bot is now running.  Press CTRL-C to exit.")
+      sc := make(chan os.Signal, 1)
+      signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
+      <-sc
+   }
    dg.Close();
-   
-
 }
 
 type args struct {
@@ -193,13 +196,12 @@ func check_flag_mode(input string, guild string, channel string, dms bool, liste
       count++
       mode = DMS;
    }
-   if listen != false{
-      count++
-      mode = LISTEN;
-   }
-
    if count == 1{
       return mode;
+   }
+   if count == 0 && listen {
+      mode = LISTEN
+      return mode
    }
    mode = NONE;
    return mode;

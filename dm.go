@@ -60,7 +60,6 @@ func get_dms_request(dg *discordgo.Session, a args) (error, []discordgo.Channel)
 		if err != nil{
 			return err, nil
 		}
-		log.Println("Appending "+ c.ID)
 		channels = append(channels, *c)
 	}
 

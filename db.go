@@ -71,6 +71,7 @@ func createTable(db *sql.DB){
 	createEmbeds := `CREATE TABLE embeds (
 		"message_id" TEXT NOT NULL,
 		"embed_url" TEXT,
+		"embed_title" TEXT,
 		"embed_description" TEXT,  
 		"embed_timestamp" TEXT,
 		"embed_thumbnail_url" TEXT,
@@ -167,7 +168,7 @@ func addMessage(db *sql.DB, m *discordgo.Message, fast_update bool) error{
 	if m.Attachments != nil{
 		media = m.Attachments;
 	}
-
+	log.Printf("Downloading message %s %s %s %s %s %v \n", timestamp, id, content, author_id, author_username, len(m.Embeds));
 	stmt := `
 	INSERT INTO messages (message_id, channel_id, guild_id, date, content, sender_id, sender_name, reply_to, edited_timestamp)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -331,6 +332,7 @@ func addEmbed(db *sql.DB, m *discordgo.Message) error {
 	if len(m.Embeds) != 0{
 
 		var URL string 
+		var title string
 		var description string 
 		var timestamp string 
 		var thumbnail_url string 
@@ -347,20 +349,22 @@ func addEmbed(db *sql.DB, m *discordgo.Message) error {
 		FROM embeds
 		WHERE message_id = $1 AND 
 		embed_url = $2 AND 
-		embed_description = $3 AND 
-		embed_timestamp = $4 AND 
-		embed_thumbnail_url = $5 AND 
-		embed_image_url = $6 AND 
-		embed_footer = $7 AND
-		embed_author_name = $8 AND
-		embed_author_url = $9 AND
-		embed_field = $10
+		embed_title = $3 AND
+		embed_description = $4 AND 
+		embed_timestamp = $5 AND 
+		embed_thumbnail_url = $6 AND 
+		embed_image_url = $7 AND 
+		embed_footer = $8 AND
+		embed_author_name = $9 AND
+		embed_author_url = $10 AND
+		embed_field = $11
 		`
 
 		stmt := `
 		INSERT INTO embeds (
 		"message_id",
 		"embed_url",
+		"embed_title",
 		"embed_description",  
 		"embed_timestamp",
 		"embed_thumbnail_url",
@@ -371,7 +375,7 @@ func addEmbed(db *sql.DB, m *discordgo.Message) error {
 		"embed_author_name",
 		"embed_author_url",
 		"embed_field")
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		`
 		for _, i := range m.Embeds{
 			var field string
@@ -381,15 +385,12 @@ func addEmbed(db *sql.DB, m *discordgo.Message) error {
 					field = field + j.Name + "\n" + j.Value + "\n"
 				}
 			}
-			if i.URL != ""{
-				URL = i.URL
-			}
-			if i.Description != ""{
-				description = i.Description
-			}
-			if i.Timestamp != ""{
-				timestamp = i.Timestamp
-			}
+
+			URL = i.URL
+			title = i.Title
+			description = i.Description
+			timestamp = i.Timestamp
+
 			if i.Thumbnail != nil{
 				thumbnail_url = i.Thumbnail.URL
 			}
@@ -407,6 +408,7 @@ func addEmbed(db *sql.DB, m *discordgo.Message) error {
 			err := db.QueryRow(sel_stmt, 
 				m.ID, 
 				URL, 
+				title,
 				description, 
 				timestamp, 
 				thumbnail_url, 
@@ -417,6 +419,7 @@ func addEmbed(db *sql.DB, m *discordgo.Message) error {
 				field).Scan(&count)
 
 			if err != nil{
+				log.Println(err)
 				return err
 			}
 			if count > 0{
@@ -449,6 +452,7 @@ func addEmbed(db *sql.DB, m *discordgo.Message) error {
 				_, err3 := db.Exec(stmt, 
 					m.ID,
 					URL,
+					title,
 					description, 
 					timestamp, 
 					thumbnail_url, 
