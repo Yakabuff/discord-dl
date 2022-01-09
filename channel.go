@@ -2,12 +2,9 @@ package main
 import(
 	"github.com/bwmarrin/discordgo"
 	"fmt"
-	 "strings"
+	"strings"
 	"errors"
 	"strconv"
-	// "time"
-	// "log"
-	//"github.com/mattn/go-sqlite3"
 )
 
 func channel_download(dg *discordgo.Session, a args) error{

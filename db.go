@@ -476,3 +476,186 @@ func addEmbed(db *sql.DB, m *discordgo.Message) error {
 }
 
 var UniqueConstraintError =  errors.New("Unique constraint error")
+
+func getMessages(db *sql.DB, guild_id string, channel_id string, last_date int) (error, *Messages){
+	var messages Messages;
+	//use keyset pagination
+	//first page: fetch first 100 messages. get date > curr time. keep track of the date of the last message returned
+	//second page: fetch second batch of 100. get date > date of the last message returned in the previous batch
+	//query messages -> query edits -> query embeds -> query attachments
+	stmt := `SELECT * FROM messages where channel_id = $1 AND guild_id = $2 AND date < $3 ORDER BY date DESC LIMIT 100` 
+	rows, err := db.Query(stmt, channel_id, guild_id, last_date)
+
+	if err != nil {
+        return err, nil;
+    }
+    defer rows.Close()
+
+	for rows.Next(){
+		var message Message
+		err := rows.Scan(
+						&message.Message_id,
+						&message.Channel_id,
+						&message.Guild_id,
+						&message.Message_timestamp,
+						&message.Content,
+						&message.Sender_id,
+						&message.Sender_name,
+						&message.Reply_to,
+						&message.Edit_time); 
+		if err != nil {
+			log.Println(err)
+            return err, nil;
+        }
+		err, edits := getEdits(db, message.Message_id)
+		if err != nil{
+			log.Println(err)
+			return err, nil;
+		}
+		err, embeds := getEmbeds(db, message.Message_id)
+		if err != nil{
+			return err, nil;
+		}
+		err, attachments := getAttachments(db, message.Message_id)
+		if err != nil{
+			return err, nil;
+		}
+
+		message.Edits = *edits;
+		message.Embeds = *embeds;
+		message.Attachments = *attachments;
+		messages.Messages = append(messages.Messages, message)
+	}
+
+	return nil, &messages;
+}
+
+func getEdits(db *sql.DB, message_id string) (error, *[]Edit){
+	var edits []Edit;
+	stmt := `SELECT * FROM edits where message_id = $1` 
+	rows, err := db.Query(stmt, message_id)
+	if err != nil {
+        return err, nil;
+    }
+    defer rows.Close()
+	for rows.Next(){
+		var edit Edit
+		err := rows.Scan(&edit.Message_id,
+						&edit.Content,
+						&edit.Edit_time); 
+		if err != nil {
+            return err, nil;
+        }
+		edits = append(edits, edit)
+	}
+	return nil, &edits
+}
+
+func getEmbeds(db *sql.DB, message_id string)(error, *[]Embed){
+	var embeds []Embed;
+	stmt := `SELECT * FROM embeds where message_id = $1` 
+	rows, err := db.Query(stmt, message_id)
+	if err != nil {
+        return err, nil;
+    }
+    defer rows.Close()
+
+	for rows.Next(){
+		var embed Embed
+		err := rows.Scan(
+			&embed.Message_id, 
+			&embed.Embed_url, 
+			&embed.Embed_title, 
+			&embed.Embed_description, 
+			&embed.Embed_timestamp, 
+			&embed.Embed_thumbnail_url, 
+			&embed.Embed_thumbnail_hash,
+			&embed.Embed_image_url, 
+			&embed.Embed_image_hash, 
+			&embed.Embed_footer, 
+			&embed.Embed_author_name, 
+			&embed.Embed_author_url, 
+			&embed.Embed_field); 
+		if err != nil {
+            return err, nil;
+        }
+
+		embeds = append(embeds, embed)
+	}
+	return nil, &embeds
+}
+
+func getAttachments(db *sql.DB, message_id string) (error, *[]Attachment){
+	var attachments []Attachment;
+	stmt := `SELECT * FROM attachments where message_id = $1` 
+	rows, err := db.Query(stmt, message_id)
+	if err != nil {
+        return err, nil;
+    }
+    defer rows.Close()
+
+	for rows.Next(){
+		var attachment Attachment
+		err := rows.Scan(
+						&attachment.Attachment_id,
+						&attachment.Message_id,
+						&attachment.Attachment_filename,
+						&attachment.Attachment_url,
+						&attachment.Attachment_hash); 
+		if err != nil {
+            return err, nil;
+        }
+
+		attachments = append(attachments, attachment)
+	}
+	return nil, &attachments;
+}
+
+type Message struct{
+	Message_id string
+	Channel_id string
+	Guild_id string
+	Message_timestamp int
+	Content string
+	Sender_id string
+	Sender_name string
+	Reply_to string
+	Edit_time string
+	Edits []Edit
+	Embeds []Embed
+	Attachments []Attachment
+}
+
+type Embed struct{
+	Message_id string
+	Embed_url string
+	Embed_title string
+	Embed_description string
+	Embed_timestamp string
+	Embed_thumbnail_url string
+	Embed_thumbnail_hash string
+	Embed_image_url string
+	Embed_image_hash string
+	Embed_footer string
+	Embed_author_name string
+	Embed_author_url string
+	Embed_field string
+}
+
+type Attachment struct{
+	Attachment_id string
+	Message_id string
+	Attachment_filename string
+	Attachment_url string
+	Attachment_hash string
+}
+
+type Edit struct{
+	Message_id string
+	Edit_time string
+	Content string
+}
+
+type Messages struct {
+	Messages []Message
+}

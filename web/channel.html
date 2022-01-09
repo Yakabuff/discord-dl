@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+    <h1> discord-dl </h1>
+    <button onclick="nextPage()">></button>
+    <div id = 'messages'>
+        {{range .Messages}}
+            <ul>
+            <li>Message ID: {{.Message_id}}</li>
+            <li>Channel ID: {{.Channel_id}}</li>
+            <li>Guild ID: {{.Guild_id}}</li>
+            <li class = 'message_timestamp'>Message Timestamp: {{.Message_timestamp}}</li>
+            <li>Sender ID: {{.Sender_id }}</li>
+            <li>Sender Name: {{.Sender_name}}</li>
+            <li>Reply To: {{.Reply_to}}</li>
+            <li>Content: {{.Content}}</li>
+            <li>Last Edit Time: {{.Edit_time}}</li>
+
+            {{range .Edits}}
+                <li>Edit Time: {{.Edit_time}}</li>
+                <li>Edit Content: {{.Content}}</li>
+            {{ end }}
+
+            {{range .Embeds}}
+                <li>Embed URL: {{.Embed_url}}</li>
+                <li>Embed timestamp: {{.Embed_timestamp}}</li>
+                <li>Embed title: {{.Embed_title}}</li>
+                <li>Embed author name: {{.Embed_author_name}}</li>
+                <li>Embed author URL: {{.Embed_author_url}}</li>
+                <li>Embed description: {{.Embed_description}}</li>
+                <li>Embed field: {{.Embed_field}}</li>
+                <li>Embed footer: {{.Embed_footer}}</li>
+                <li>Embed thumbnail URL: {{.Embed_thumbnail_url}}</li>
+                <li>Embed thumbnail hash: {{.Embed_thumbnail_hash}}</li>
+                <li>Embed image URL: {{.Embed_image_url}}</li>
+                <li>Embed image hash: {{.Embed_image_hash}}</li>
+            {{ end }}
+
+            {{range .Attachments}}
+                <li>Attachment ID: {{.Attachment_id}}</li>
+                <li>Attachment Hash: {{.Attachment_hash}}</li>
+                <li>Attachment filename: {{.Attachment_filename}}</li>
+                <li>Attachment URL {{.Attachment_url}}</li>
+            {{ end }}
+            </ul>
+        {{ end }}
+    </div>
+    <script>
+    function nextPage(){
+
+    }
+    </script>
+</html>

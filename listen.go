@@ -33,5 +33,20 @@ func messageListen(dg *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 }
 
+func messageUpdateListen(dg *discordgo.Session, m *discordgo.MessageUpdate) {
+	if m.Author.ID == dg.State.User.ID {
+		return
+	}
+	log.Println("[LISTEN] Detected new message edit. Fetching message " + m.ID + " from" + m.ChannelID)
+	//filter out all messages that do not have an edit timestamp. Only listen for content edits
+	edited_timestamp, err:= m.EditedTimestamp.Parse()
+	if err != nil{
+		log.Println(err)
+	}
+	edited_timestamp_unix := edited_timestamp.Unix()
+	if m.EditedTimestamp != ""{
+		addEdit(db, m.ID, edited_timestamp_unix, m.Content)
+	}
+}
 
 

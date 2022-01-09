@@ -23,6 +23,7 @@ const(
    CHANNEL
    DMS
    LISTEN
+   DEPLOY
 )
 
 var db *sql.DB
@@ -54,6 +55,7 @@ func main(){
       dg.Identify.Intents = discordgo.IntentsGuildMessages
       log.Println("Listening...")
       dg.AddHandler(messageListen)
+      dg.AddHandler(messageUpdateListen)
    }
 
    switch a.mode{
@@ -79,7 +81,9 @@ func main(){
       }
    }
 
-   if a.listen{
+   if a.listen || a.deploy{
+      //If deploy launch new goroutine
+      go Deploy()
       // Wait here until CTRL-C or other term signal is received.
       fmt.Println("Bot is now running.  Press CTRL-C to exit.")
       sc := make(chan os.Signal, 1)
@@ -103,6 +107,7 @@ type args struct {
    channel string
    dms bool
    listen bool
+   deploy bool
 }
 
 func init_cli() *args{
@@ -119,15 +124,17 @@ func init_cli() *args{
    channel := flag.String("channel", "", "Retrieves messages from selected channel");
    dms := flag.Bool("dms", false, "DM mode. Retrieves all DM conversations"); 
    listen := flag.Bool("listen", false, "Listens for new messages/events and archives in real time.  Can only be used with a bot account");
+   deploy := flag.Bool("deploy",false, "Deploys webapp")
    flag.Parse();
 
-   mode := check_flag_mode(*input, *guild, *channel, *dms, *listen);
+   mode := check_flag_mode(*input, *guild, *channel, *dms, *listen, *deploy);
    if mode == NONE{
       fmt.Fprintln(os.Stderr,"Invalid flags");
       os.Exit(1);
    }
 
-   a := args{progress: *progress,
+   a := args{
+      progress: *progress,
       before: *before,
        after: *after,
  fast_update: *fast_update,
@@ -139,6 +146,7 @@ download_media: *download_media,
      channel: *channel,
          dms: *dms,
       listen: *listen,
+      deploy: *deploy,
         mode: mode}
 
    if(*input != "" && len(os.Args) > 3){
@@ -177,7 +185,7 @@ download_media: *download_media,
    return &a;
 }
 
-func check_flag_mode(input string, guild string, channel string, dms bool, listen bool) Mode{
+func check_flag_mode(input string, guild string, channel string, dms bool, listen bool, deploy bool) Mode{
    var count int;
    var mode Mode;
    if input != ""{
@@ -201,6 +209,10 @@ func check_flag_mode(input string, guild string, channel string, dms bool, liste
    }
    if count == 0 && listen {
       mode = LISTEN
+      return mode
+   }
+   if count == 0 && deploy{
+      mode = DEPLOY
       return mode
    }
    mode = NONE;
