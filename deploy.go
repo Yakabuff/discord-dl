@@ -3,53 +3,105 @@ package main
 import(
 	"html/template"
 	"net/http"
-	"fmt"
+	// "fmt"
 	"log"
-	"regexp"
+	// "regexp"
 	"time"
+	"github.com/go-chi/chi/v5"
+	"strconv"
+	"strings"
 )
-//simple rest api
-// localhost:8080/<guild_id>/<channel_id>/date
-
 
 func Deploy(){
 	log.Println("starting web app")
-
-	http.HandleFunc("/", messageHandler)
-	http.ListenAndServe(":8000", nil) 
+	r := chi.NewRouter();
+	r.Route("/{guild}/{channel}", func(r chi.Router){
+		r.Get("/", messageHandler)
+		r.Get("/{date}", messageHandlerDate)
+		r.Get("/{date}/next", messageHandlerNav)
+		r.Get("/{date}/prev", messageHandlerNav)
+	})
+	// r.Get("/{guild}/{channel}/*", messageHandler)
+	http.ListenAndServe(":8000", r) 
 }
-var urlExp = regexp.MustCompile(`/(?P<guild>\d+)/(?P<channel>\d+)/(?P<date>\d*)`)
 
 func messageHandler(w http.ResponseWriter, r *http.Request) {
 
-	match := urlExp.FindStringSubmatch(r.URL.Path)
-	if len(match) > 0 {
-        result := make(map[string]string)
-        for i, name := range urlExp.SubexpNames() {
-            if i != 0 && name != "" {
-                result[name] = match[i]
-            }
-        }
+	guildParam := strings.TrimSpace(chi.URLParam(r, "guild"))
+	channelParam := strings.TrimSpace(chi.URLParam(r, "channel"))
 
-		var date_unix int
-		date, err2 := DateToTime(result["date"])
-		if err2 != nil{
-			date_unix = int(time.Now().Unix())
-		}else{
-			date_unix = int(date.Unix())
-		}
-		log.Println(date_unix)
-		tmpl,err := template.ParseFiles("web/channel.html")
-		if err != nil{
-			log.Println(err)
-		}
-		_, msgs := getMessages(db, result["guild"], result["channel"], date_unix)
-		for _, i := range(msgs.Messages){
-			log.Println(i.Message_id)
-		}
-		tmpl.Execute(w, *msgs)
-		
-    } else {
-        fmt.Fprintf(w, "Wrong url\n")
-    }
+	date_unix := int(time.Now().Unix())
+	
+	tmpl,err := template.ParseFiles("web/channel.html")
+	if err != nil{
+		log.Println(err)
+	}
+	log.Println("-----")
+	log.Println(guildParam)
+	log.Println(channelParam)
+	log.Println(date_unix)
+	_, msgs := getMessages(db, guildParam, channelParam, date_unix)
+	for _, i := range(msgs.Messages){
+		log.Println(i.Message_id)
+	}
+	tmpl.Execute(w, *msgs)
+
 }
+
+func messageHandlerDate(w http.ResponseWriter, r *http.Request){
+	guildParam := strings.TrimSpace(chi.URLParam(r, "guild"))
+	channelParam := strings.TrimSpace(chi.URLParam(r, "channel"))
+	dateParam := strings.TrimSpace(chi.URLParam(r, "*"))
+
+	date_unix, err := strconv.Atoi(dateParam)
+	if err != nil{
+		date_unix = int(time.Now().Unix())
+	}
+	tmpl,err := template.ParseFiles("web/channel.html")
+	if err != nil{
+		log.Println(err)
+	}
+	log.Println("-----")
+	log.Println(guildParam)
+	log.Println(channelParam)
+	log.Println(date_unix)
+	_, msgs := getMessages(db, guildParam, channelParam, date_unix)
+	for _, i := range(msgs.Messages){
+		log.Println(i.Message_id)
+	}
+	tmpl.Execute(w, *msgs)
+}
+
+func messageHandlerNav(w http.ResponseWriter, r *http.Request){
+	guildParam := strings.TrimSpace(chi.URLParam(r, "guild"))
+	channelParam := strings.TrimSpace(chi.URLParam(r, "channel"))
+	dateParam := strings.TrimSpace(chi.URLParam(r, "date"))
+
+	date_unix, err := strconv.Atoi(dateParam)
+	if err != nil{
+		date_unix = int(time.Now().Unix())
+	}
+	tmpl,err := template.ParseFiles("web/channel.html")
+	if err != nil{
+		log.Println(err)
+	}
+	log.Println("-----")
+	log.Println(guildParam)
+	log.Println(channelParam)
+	log.Println(date_unix)
+	_, msgs := getMessages(db, guildParam, channelParam, date_unix)
+	// for _, i := range(msgs.Messages){
+	// 	log.Println(i.Message_id)
+	// }
+	tmpl.ExecuteTemplate(w,"msgs", *msgs)
+}
+
+//need to somehow use ajax when going to next or prev page
+//when click next page, get date of last message, send via POST, server returns new URL and navigate to that URL. Update prev page button with old URL
+//at beginning: next has date of last message. prev has no date 
+//next x1: next has date of last message. prev has no date
+//next x2: next has date of last message. prev has next x1's next
+//next x3: next has date of last message. prev has next x2's next
+//when click prev page, navigate to prev page using updated URL
+
+//click next/prev, 

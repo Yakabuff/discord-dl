@@ -1,52 +1,176 @@
 <!DOCTYPE html>
 <html>
-    <h1> discord-dl </h1>
-    <button onclick="nextPage()">></button>
-    <div id = 'messages'>
-        {{range .Messages}}
-            <ul>
-            <li>Message ID: {{.Message_id}}</li>
-            <li>Channel ID: {{.Channel_id}}</li>
-            <li>Guild ID: {{.Guild_id}}</li>
-            <li class = 'message_timestamp'>Message Timestamp: {{.Message_timestamp}}</li>
-            <li>Sender ID: {{.Sender_id }}</li>
-            <li>Sender Name: {{.Sender_name}}</li>
-            <li>Reply To: {{.Reply_to}}</li>
-            <li>Content: {{.Content}}</li>
-            <li>Last Edit Time: {{.Edit_time}}</li>
+    <body>
 
-            {{range .Edits}}
-                <li>Edit Time: {{.Edit_time}}</li>
-                <li>Edit Content: {{.Content}}</li>
-            {{ end }}
+    <h1> discord-dl</h1>
 
-            {{range .Embeds}}
-                <li>Embed URL: {{.Embed_url}}</li>
-                <li>Embed timestamp: {{.Embed_timestamp}}</li>
-                <li>Embed title: {{.Embed_title}}</li>
-                <li>Embed author name: {{.Embed_author_name}}</li>
-                <li>Embed author URL: {{.Embed_author_url}}</li>
-                <li>Embed description: {{.Embed_description}}</li>
-                <li>Embed field: {{.Embed_field}}</li>
-                <li>Embed footer: {{.Embed_footer}}</li>
-                <li>Embed thumbnail URL: {{.Embed_thumbnail_url}}</li>
-                <li>Embed thumbnail hash: {{.Embed_thumbnail_hash}}</li>
-                <li>Embed image URL: {{.Embed_image_url}}</li>
-                <li>Embed image hash: {{.Embed_image_hash}}</li>
-            {{ end }}
+        <h3 id = "channel_id"></h3>
+        <h3 id = "guild_id"></h3>
+        <button id = "prev"> Prev </button>
+        <button id = "next"> Next </button>
+        {{block "msgs" .}}
+            <div id = "messages">
+                {{range .Messages}}
+                    <ul>
+                    <li>Message ID: {{.Message_id}}</li>
+                    Channel ID:
+                    <li class = "channel_id"> {{.Channel_id}}</li>
+                    Guild ID:
+                    <li class = "guild_id"> {{.Guild_id}}</li>
+                    Message Timestamp:
+                    <li class = "message_timestamp"> {{.Message_timestamp}}</li>
+                    <li>Sender ID: {{.Sender_id }}</li>
+                    <li>Sender Name: {{.Sender_name}}</li>
+                    <li>Reply To: {{.Reply_to}}</li>
+                    <li>Content: {{.Content}}</li>
+                    <li>Last Edit Time: {{.Edit_time}}</li>
 
-            {{range .Attachments}}
-                <li>Attachment ID: {{.Attachment_id}}</li>
-                <li>Attachment Hash: {{.Attachment_hash}}</li>
-                <li>Attachment filename: {{.Attachment_filename}}</li>
-                <li>Attachment URL {{.Attachment_url}}</li>
-            {{ end }}
-            </ul>
+                    {{range .Edits}}
+                        <li>Edit Time: {{.Edit_time}}</li>
+                        <li>Edit Content: {{.Content}}</li>
+                    {{ end }}
+
+                    {{range .Embeds}}
+                        <li>Embed URL: {{.Embed_url}}</li>
+                        <li>Embed timestamp: {{.Embed_timestamp}}</li>
+                        <li>Embed title: {{.Embed_title}}</li>
+                        <li>Embed author name: {{.Embed_author_name}}</li>
+                        <li>Embed author URL: {{.Embed_author_url}}</li>
+                        <li>Embed description: {{.Embed_description}}</li>
+                        <li>Embed field: {{.Embed_field}}</li>
+                        <li>Embed footer: {{.Embed_footer}}</li>
+                        <li>Embed thumbnail URL: {{.Embed_thumbnail_url}}</li>
+                        <li>Embed thumbnail hash: {{.Embed_thumbnail_hash}}</li>
+                        <li>Embed image URL: {{.Embed_image_url}}</li>
+                        <li>Embed image hash: {{.Embed_image_hash}}</li>
+                    {{ end }}
+
+                    {{range .Attachments}}
+                        <li>Attachment ID: {{.Attachment_id}}</li>
+                        <li>Attachment Hash: {{.Attachment_hash}}</li>
+                        <li>Attachment filename: {{.Attachment_filename}}</li>
+                        <li>Attachment URL {{.Attachment_url}}</li>
+                    {{ end }}
+                    </ul>
+                {{ end }}
+            </div>
         {{ end }}
-    </div>
+        <button id = "prev"> Prev </button>
+        <button id = "next"> Next </button>
+    </body>
     <script>
-    function nextPage(){
+    class DoublyLinkedList {
+        constructor() {
+            this.head = null;
+            this.tail = null;
+            this.length = 0;
+        }
+        insertNode(){
+            console.log("inserting node")
+            //create node.
+            let curr = createNode(this.length+1);
+            //set new node tail to curr node head
+            curr.prev = page;
+            //set curr head to new node tail
+            page.next = curr;
+            //increment length by 1
+            this.length = this.length + 1;
+            console.log(length)
+            //set page to curr
+            page = curr;
+            this.head = curr;
+        }
+    }
+    function createNode(value) {
+        let elements = document.getElementsByClassName("message_timestamp");
+        
+        let u = elements[0].innerHTML;
+        let l = elements[elements.length-1].innerHTML;
+        return {
+        value: value,
+        upperDate: u,
+        lowerDate: l,
+        next: null,
+        previous: null,
+        }
+    };
+    function nextButton(){
+        //call endpoint
+        let msgs = document.getElementById("messages");
+        let xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function(){
+            if (xhr.readyState == 4 && xhr.status == 200) {
+                var e = document.getElementById("messages");
+                e.outerHTML = xhr.responseText;
+                console.log(xhr.status);
+            }
+        }
+        let date = parseInt(page.lowerDate) - 1
+        xhr.open("GET", "/"+guild_id+"/"+channel_id+"/"+date+"/next", true);
+        try { xhr.send(); } catch (err) { 
+            console.log(err)
+            return;
+        }
+        // //if next node > length, make new mode
+        if (page === dLinkedList.head){
+            dLinkedList.insertNode();
+            console.log("creating new node")
+        }else{
+            page = page.next;
+        }
+        console.log(page.value)
+        //update button with next values and update page
+        console.log("---");
+            console.log(dLinkedList.tail);
+            console.log(dLinkedList.tail.next)
 
     }
+    function prevButton(){
+        //call endpoint
+        let msgs = document.getElementById("messages");
+        let xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function(){
+            if (xhr.readyState == 4 && xhr.status == 200) {
+                var e = document.getElementById("messages");
+                e.outerHTML = xhr.responseText;
+                console.log(xhr.status);
+            }
+        }
+        let date = parseInt(page.previous.upperDate) + 1
+        xhr.open("GET", "/"+guild_id+"/"+channel_id+"/"+date+"/next", true);
+        try { xhr.send(); } catch (err) { 
+            console.log(err)
+            return;
+        }        
+        //if curr node val == 1, do nothing
+        if (page == dLinkedList.tail){
+            return;
+        }else{
+            page = page.previous;
+        }
+        //update button with prev values and update page
+    }
+    var page;
+    var guild_id;
+    var channel_id;
+    var dLinkedList;
+    window.onload = function() {
+
+        dLinkedList = new DoublyLinkedList();
+        page = createNode(1)
+        dLinkedList.head=page;
+        dLinkedList.tail = page;
+        dLinkedList.length = 1;
+
+        channel_id = document.getElementsByClassName("channel_id")[0].innerHTML;
+        guild_id = document.getElementsByClassName("guild_id")[0].innerHTML;
+        let s= document.getElementById("channel_id");
+        s.innerHTML = "Channel ID: " + channel_id;
+
+        s= document.getElementById("guild_id");
+        s.innerHTML= "Guild ID: " + guild_id;
+        document.getElementById("prev").addEventListener("click", prevButton);
+        document.getElementById("next").addEventListener("click", nextButton);
+    };
     </script>
 </html>
