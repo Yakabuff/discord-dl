@@ -6,8 +6,8 @@
 
         <h3 id = "channel_id"></h3>
         <h3 id = "guild_id"></h3>
-        <button id = "prev"> Prev </button>
-        <button id = "next"> Next </button>
+        <button class = "prev"> Prev </button>
+        <button class = "next"> Next </button>
         {{block "msgs" .}}
             <div id = "messages">
                 {{range .Messages}}
@@ -55,8 +55,8 @@
                 {{ end }}
             </div>
         {{ end }}
-        <button id = "prev"> Prev </button>
-        <button id = "next"> Next </button>
+        <button class = "prev"> Prev </button>
+        <button class = "next"> Next </button>
     </body>
     <script>
     class DoublyLinkedList {
@@ -66,19 +66,16 @@
             this.length = 0;
         }
         insertNode(){
-            console.log("inserting node")
             //create node.
-            let curr = createNode(this.length+1);
+            this.length = this.length + 1;
+            let curr = createNode(this.length);
             //set new node tail to curr node head
-            curr.prev = page;
+            curr.previous = page;
             //set curr head to new node tail
             page.next = curr;
-            //increment length by 1
-            this.length = this.length + 1;
-            console.log(length)
             //set page to curr
             page = curr;
-            this.head = curr;
+            this.head = page;
         }
     }
     function createNode(value) {
@@ -97,33 +94,26 @@
     function nextButton(){
         //call endpoint
         let msgs = document.getElementById("messages");
+        let date = parseInt(page.lowerDate) - 1
         let xhr = new XMLHttpRequest();
+        xhr.open("GET", "/"+guild_id+"/"+channel_id+"/"+date+"/next", true);
         xhr.onreadystatechange = function(){
             if (xhr.readyState == 4 && xhr.status == 200) {
                 var e = document.getElementById("messages");
                 e.outerHTML = xhr.responseText;
                 console.log(xhr.status);
+
+                if (page === dLinkedList.head){
+                    dLinkedList.insertNode();
+                }else{
+                    page = page.next;
+                }
             }
         }
-        let date = parseInt(page.lowerDate) - 1
-        xhr.open("GET", "/"+guild_id+"/"+channel_id+"/"+date+"/next", true);
         try { xhr.send(); } catch (err) { 
             console.log(err)
             return;
         }
-        // //if next node > length, make new mode
-        if (page === dLinkedList.head){
-            dLinkedList.insertNode();
-            console.log("creating new node")
-        }else{
-            page = page.next;
-        }
-        console.log(page.value)
-        //update button with next values and update page
-        console.log("---");
-            console.log(dLinkedList.tail);
-            console.log(dLinkedList.tail.next)
-
     }
     function prevButton(){
         //call endpoint
@@ -134,21 +124,20 @@
                 var e = document.getElementById("messages");
                 e.outerHTML = xhr.responseText;
                 console.log(xhr.status);
+                        //if curr node val == 1, do nothing
+                if (page == dLinkedList.tail){
+                    return;
+                }else{
+                    page = page.previous;
+                }
             }
         }
         let date = parseInt(page.previous.upperDate) + 1
-        xhr.open("GET", "/"+guild_id+"/"+channel_id+"/"+date+"/next", true);
+        xhr.open("GET", "/"+guild_id+"/"+channel_id+"/"+date+"/prev", true);
         try { xhr.send(); } catch (err) { 
             console.log(err)
             return;
         }        
-        //if curr node val == 1, do nothing
-        if (page == dLinkedList.tail){
-            return;
-        }else{
-            page = page.previous;
-        }
-        //update button with prev values and update page
     }
     var page;
     var guild_id;
@@ -169,8 +158,10 @@
 
         s= document.getElementById("guild_id");
         s.innerHTML= "Guild ID: " + guild_id;
-        document.getElementById("prev").addEventListener("click", prevButton);
-        document.getElementById("next").addEventListener("click", nextButton);
+        document.getElementsByClassName("prev")[0].addEventListener("click", prevButton);
+        document.getElementsByClassName("prev")[1].addEventListener("click", prevButton);
+        document.getElementsByClassName("next")[0].addEventListener("click", nextButton);
+        document.getElementsByClassName("next")[1].addEventListener("click", nextButton);
     };
     </script>
 </html>
