@@ -8,6 +8,8 @@ import(
 	"github.com/bwmarrin/discordgo"
 	"errors"
 	"github.com/mattn/go-sqlite3"
+	"path/filepath"
+	"strings"
 )
 
 func init_db() (*sql.DB, error){
@@ -521,16 +523,18 @@ func getMessages(db *sql.DB, guild_id string, channel_id string, last_date int) 
 			return err, nil;
 		}
 
-		message.Edits = *edits;
-		message.Embeds = *embeds;
-		message.Attachments = *attachments;
+		addEmbedResourceLink(embeds, message.Channel_id)
+		addAttachmentResourceLink(attachments, message.Channel_id)
+		message.Edits = edits;
+		message.Embeds = embeds;
+		message.Attachments = attachments;
 		messages.Messages = append(messages.Messages, message)
 	}
 
 	return nil, &messages;
 }
 
-func getEdits(db *sql.DB, message_id string) (error, *[]Edit){
+func getEdits(db *sql.DB, message_id string) (error, []Edit){
 	var edits []Edit;
 	stmt := `SELECT * FROM edits where message_id = $1` 
 	rows, err := db.Query(stmt, message_id)
@@ -548,10 +552,10 @@ func getEdits(db *sql.DB, message_id string) (error, *[]Edit){
         }
 		edits = append(edits, edit)
 	}
-	return nil, &edits
+	return nil, edits
 }
 
-func getEmbeds(db *sql.DB, message_id string)(error, *[]Embed){
+func getEmbeds(db *sql.DB, message_id string)(error, []Embed){
 	var embeds []Embed;
 	stmt := `SELECT * FROM embeds where message_id = $1` 
 	rows, err := db.Query(stmt, message_id)
@@ -579,13 +583,13 @@ func getEmbeds(db *sql.DB, message_id string)(error, *[]Embed){
 		if err != nil {
             return err, nil;
         }
-
+		
 		embeds = append(embeds, embed)
 	}
-	return nil, &embeds
+	return nil, embeds
 }
 
-func getAttachments(db *sql.DB, message_id string) (error, *[]Attachment){
+func getAttachments(db *sql.DB, message_id string) (error, []Attachment){
 	var attachments []Attachment;
 	stmt := `SELECT * FROM attachments where message_id = $1` 
 	rows, err := db.Query(stmt, message_id)
@@ -608,7 +612,33 @@ func getAttachments(db *sql.DB, message_id string) (error, *[]Attachment){
 
 		attachments = append(attachments, attachment)
 	}
-	return nil, &attachments;
+	return nil, attachments;
+}
+
+func addEmbedResourceLink(embeds []Embed, channel_id string){
+	for i, _ := range embeds{
+		if embeds[i].Embed_image_hash != ""{
+			embeds[i].Resource_path_image = filepath.FromSlash("/media/"+ channel_id +"/"+ embeds[i].Embed_image_hash)
+		}
+		if embeds[i].Embed_thumbnail_hash != ""{
+			embeds[i].Resource_path_thumbnail = filepath.FromSlash("/media/"+ channel_id +"/"+ embeds[i].Embed_thumbnail_hash)
+		}
+	}
+}
+
+func addAttachmentResourceLink(attachments []Attachment , channel_id string){
+		for i, _ := range(attachments){
+			attachments[i].Resource_path = filepath.FromSlash("/media/"+channel_id+"/"+attachments[i].Attachment_hash)
+			s := strings.ToLower(strings.Split(attachments[i].Attachment_filename, ".")[1])
+			if s == "png" || s == "jpg" || s == "jpeg" || s == "gif" {
+				attachments[i].Resource_type = "IMAGE"
+			}else if s == "mp4" || s == "mov" || s == "wmv" || s == "avi" || s == "flv" || s == "swf" || s == "mkv" || s == "webm"{
+				attachments[i].Resource_type = "VIDEO"
+			}else{
+				attachments[i].Resource_type = "FILE"
+			}
+			
+		}
 }
 
 type Message struct{
@@ -640,6 +670,8 @@ type Embed struct{
 	Embed_author_name string
 	Embed_author_url string
 	Embed_field string
+	Resource_path_thumbnail string
+	Resource_path_image string
 }
 
 type Attachment struct{
@@ -648,6 +680,8 @@ type Attachment struct{
 	Attachment_filename string
 	Attachment_url string
 	Attachment_hash string
+	Resource_path string
+	Resource_type string
 }
 
 type Edit struct{

@@ -33,64 +33,66 @@ func main(){
 	var a = init_cli();
 
    db, err = init_db();
-
-   dg, err := discordgo.New(a.token);
-
-   if err != nil{
-      fmt.Println("Error creating discord session");
-      return;
-   }
-   err = dg.Open();
-
-   if err != nil{
-      fmt.Println(err.Error());
-      return
-   }
-
-   u, err := dg.User("@me");
-
-   log.Printf("discord-dl has succesfully logged into %s#%s %s\n", u.Username, u.Discriminator, u.ID);
-
-   if a.listen{
-      dg.Identify.Intents = discordgo.IntentsGuildMessages
-      log.Println("Listening...")
-      dg.AddHandler(messageListen)
-      dg.AddHandler(messageUpdateListen)
-   }
-
-   switch a.mode{
-   case INPUT:
+   if a.mode == INPUT{
       fmt.Println("Selected input mode")
-   case GUILD:
-      fmt.Println("Archiving guild")
-      err := guild_download(dg, *a)
-      if err != nil{
-         log.Println(err)
-      }
-   case CHANNEL:
-      fmt.Println("Selected channel mode")
-      err := channel_download(dg, *a)
-      if err != nil{
-         log.Println(err)
-      }
-   case DMS:
-      fmt.Println("Selected DM mode")
-      err := dm_download(dg, *a)
-      if err != nil{
-         log.Println(err)
-      }
-   }
+      parse_input(a.input);
+   }else{
+      dg, err := discordgo.New(a.token);
 
-   if a.listen || a.deploy{
-      //If deploy launch new goroutine
-      go Deploy()
-      // Wait here until CTRL-C or other term signal is received.
-      fmt.Println("Bot is now running.  Press CTRL-C to exit.")
-      sc := make(chan os.Signal, 1)
-      signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
-      <-sc
+      if err != nil{
+         fmt.Println("Error creating discord session");
+         return;
+      }
+      err = dg.Open();
+
+      if err != nil{
+         fmt.Println(err.Error());
+         return
+      }
+
+      u, err := dg.User("@me");
+
+      log.Printf("discord-dl has succesfully logged into %s#%s %s\n", u.Username, u.Discriminator, u.ID);
+
+      if a.listen{
+         dg.Identify.Intents = discordgo.IntentsGuildMessages
+         log.Println("Listening...")
+         dg.AddHandler(messageListen)
+         dg.AddHandler(messageUpdateListen)
+      }
+
+      switch a.mode{
+      case GUILD:
+         fmt.Println("Archiving guild")
+         err := guild_download(dg, *a)
+         if err != nil{
+            log.Println(err)
+         }
+      case CHANNEL:
+         fmt.Println("Selected channel mode")
+         err := channel_download(dg, *a)
+         if err != nil{
+            log.Println(err)
+         }
+      case DMS:
+         fmt.Println("Selected DM mode")
+         err := dm_download(dg, *a)
+         if err != nil{
+            log.Println(err)
+         }
+      }
+
+      if a.listen || a.deploy{
+         //If deploy launch new goroutine
+         go Deploy()
+         // Wait here until CTRL-C or other term signal is received.
+         fmt.Println("Bot is now running.  Press CTRL-C to exit.")
+         sc := make(chan os.Signal, 1)
+         signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
+         <-sc
+      }
+      dg.Close();
    }
-   dg.Close();
 }
 
 type args struct {
@@ -204,9 +206,14 @@ func check_flag_mode(input string, guild string, channel string, dms bool, liste
       count++
       mode = DMS;
    }
+   if input != ""{
+      count ++
+      mode = INPUT;
+   }
    if count == 1{
       return mode;
    }
+   //option to run these flags by itself
    if count == 0 && listen {
       mode = LISTEN
       return mode

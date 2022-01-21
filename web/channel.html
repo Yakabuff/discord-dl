@@ -11,47 +11,78 @@
         {{block "msgs" .}}
             <div id = "messages">
                 {{range .Messages}}
-                    <ul>
-                    <li>Message ID: {{.Message_id}}</li>
-                    Channel ID:
-                    <li class = "channel_id"> {{.Channel_id}}</li>
-                    Guild ID:
-                    <li class = "guild_id"> {{.Guild_id}}</li>
-                    Message Timestamp:
-                    <li class = "message_timestamp"> {{.Message_timestamp}}</li>
-                    <li>Sender ID: {{.Sender_id }}</li>
-                    <li>Sender Name: {{.Sender_name}}</li>
-                    <li>Reply To: {{.Reply_to}}</li>
-                    <li>Content: {{.Content}}</li>
-                    <li>Last Edit Time: {{.Edit_time}}</li>
+                    {{$channel := .Channel_id}}
+                    {{$guild := .Guild_id}}
+                    <div class = "message">
+                        <ul>
+                            <li>Message ID: {{.Message_id}}</li>
+                            Channel ID:
+                            <li class = "channel_id"> {{.Channel_id}}</li>
+                            Guild ID:
+                            <li class = "guild_id"> {{.Guild_id}}</li>
+                            Message Timestamp:
+                            <li class = "message_timestamp"> {{.Message_timestamp}}</li>
+                            <li>Sender ID: {{.Sender_id }}</li>
+                            <li>Sender Name: {{.Sender_name}}</li>
+                            <li>Reply To: {{.Reply_to}}</li>
+                            <li>Content: {{.Content}}</li>
+                            <li>Last Edit Time: {{.Edit_time}}</li>
 
-                    {{range .Edits}}
-                        <li>Edit Time: {{.Edit_time}}</li>
-                        <li>Edit Content: {{.Content}}</li>
-                    {{ end }}
+                            {{range .Edits}}
+                                <li>Edit Time: {{.Edit_time}}</li>
+                                <li>Edit Content: {{.Content}}</li>
+                            {{ end }}
 
-                    {{range .Embeds}}
-                        <li>Embed URL: {{.Embed_url}}</li>
-                        <li>Embed timestamp: {{.Embed_timestamp}}</li>
-                        <li>Embed title: {{.Embed_title}}</li>
-                        <li>Embed author name: {{.Embed_author_name}}</li>
-                        <li>Embed author URL: {{.Embed_author_url}}</li>
-                        <li>Embed description: {{.Embed_description}}</li>
-                        <li>Embed field: {{.Embed_field}}</li>
-                        <li>Embed footer: {{.Embed_footer}}</li>
-                        <li>Embed thumbnail URL: {{.Embed_thumbnail_url}}</li>
-                        <li>Embed thumbnail hash: {{.Embed_thumbnail_hash}}</li>
-                        <li>Embed image URL: {{.Embed_image_url}}</li>
-                        <li>Embed image hash: {{.Embed_image_hash}}</li>
-                    {{ end }}
+                            {{range .Embeds}}
+                                <div class = "embed">
+                                    <li>Embed URL: {{.Embed_url}}</li>
+                                    <li>Embed timestamp: {{.Embed_timestamp}}</li>
+                                    <li>Embed title: {{.Embed_title}}</li>
+                                    <li>Embed author name: {{.Embed_author_name}}</li>
+                                    <li>Embed author URL: {{.Embed_author_url}}</li>
+                                    <li>Embed description: {{.Embed_description}}</li>
+                                    <li>Embed field: {{.Embed_field}}</li>
+                                    <li>Embed footer: {{.Embed_footer}}</li>
+                                    <li>Embed thumbnail URL: {{.Embed_thumbnail_url}}</li>
+                                    Embed thumbnail hash: 
+                                    <li class = "thumbnail_hash">{{.Embed_thumbnail_hash}}</li>
+                                    <li>Embed image URL: {{.Embed_image_url}}</li>
+                                    Embed image hash: 
+                                    <li class = "image_hash">{{.Embed_image_hash}}</li>
 
-                    {{range .Attachments}}
-                        <li>Attachment ID: {{.Attachment_id}}</li>
-                        <li>Attachment Hash: {{.Attachment_hash}}</li>
-                        <li>Attachment filename: {{.Attachment_filename}}</li>
-                        <li>Attachment URL {{.Attachment_url}}</li>
-                    {{ end }}
-                    </ul>
+                                    {{ if .Resource_path_thumbnail }}
+                                    <img width="320" height="240" src = "{{ .Resource_path_thumbnail }}" ></img>
+                                    {{end}}
+                                    {{ if .Resource_path_image }}
+                                    <img width="320" height="240" src = "{{ .Resource_path_image }}" ></img>
+                                    {{end}}
+
+                                </div>
+                            {{ end }}
+
+                            {{range .Attachments}}
+                                <div class = "attachment">
+                                    <li>Attachment ID: {{.Attachment_id}}</li>
+                                    Attachment Hash:
+                                    <li class = "attachment_hash">{{.Attachment_hash}}</li>
+                                    Attachment filename:
+                                    <li class = "attachment_filename"> {{.Attachment_filename}}</li>
+                                    <li>Attachment URL {{.Attachment_url}}</li>
+                                    <li>Resource type {{.Resource_type}}</li>
+                                    {{ if eq .Resource_type "IMAGE"}}
+                                        <img width="320" height="240" src = "{{ .Resource_path }}"></img>
+                                    {{ end }}
+                                    {{ if eq .Resource_type "VIDEO" }}
+                                        <video width="320" height="240" controls>
+                                            <source src="{{ .Resource_path }}">
+                                        </video>
+                                    {{ end }}
+                                    <br>
+                                    <a href="{{ .Resource_path }}">Link to file</a>
+                                </div>
+                            {{ end }}
+                        </ul>
+                    </div>
                 {{ end }}
             </div>
         {{ end }}
@@ -91,6 +122,14 @@
         previous: null,
         }
     };
+
+    function setButtonsDisabled(val){
+        document.getElementsByClassName("prev")[0].disabled = val;
+        document.getElementsByClassName("prev")[1].disabled = val;
+        document.getElementsByClassName("next")[0].disabled = val;
+        document.getElementsByClassName("next")[1].disabled = val;
+    }
+
     function nextButton(){
         //call endpoint
         let msgs = document.getElementById("messages");
@@ -99,6 +138,7 @@
         xhr.open("GET", "/"+guild_id+"/"+channel_id+"/"+date+"/next", true);
         xhr.onreadystatechange = function(){
             if (xhr.readyState == 4 && xhr.status == 200) {
+                setButtonsDisabled(true);
                 var e = document.getElementById("messages");
                 e.outerHTML = xhr.responseText;
                 console.log(xhr.status);
@@ -108,6 +148,8 @@
                 }else{
                     page = page.next;
                 }
+
+                setButtonsDisabled(false);
             }
         }
         try { xhr.send(); } catch (err) { 
@@ -121,6 +163,7 @@
         let xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function(){
             if (xhr.readyState == 4 && xhr.status == 200) {
+                setButtonsDisabled(true);
                 var e = document.getElementById("messages");
                 e.outerHTML = xhr.responseText;
                 console.log(xhr.status);
@@ -130,6 +173,7 @@
                 }else{
                     page = page.previous;
                 }
+                setButtonsDisabled(false);
             }
         }
         let date = parseInt(page.previous.upperDate) + 1

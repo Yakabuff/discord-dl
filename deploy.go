@@ -3,13 +3,12 @@ package main
 import(
 	"html/template"
 	"net/http"
-	// "fmt"
 	"log"
-	// "regexp"
 	"time"
 	"github.com/go-chi/chi/v5"
 	"strconv"
 	"strings"
+	"path/filepath"
 )
 
 func Deploy(){
@@ -21,8 +20,17 @@ func Deploy(){
 		r.Get("/{date}/next", messageHandlerNav)
 		r.Get("/{date}/prev", messageHandlerNav)
 	})
-	// r.Get("/{guild}/{channel}/*", messageHandler)
+
+
+	r.Get("/media/{channel}/{hash}", mediaHandler)
 	http.ListenAndServe(":8000", r) 
+}
+
+func mediaHandler(w http.ResponseWriter, r *http.Request){
+	channelParam := strings.TrimSpace(chi.URLParam(r, "channel"))
+	hashParam := strings.TrimSpace(chi.URLParam(r, "hash"))
+	path := filepath.FromSlash("media/"+channelParam+"/"+hashParam)
+	http.ServeFile(w, r, path)
 }
 
 func messageHandler(w http.ResponseWriter, r *http.Request) {
@@ -36,14 +44,9 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil{
 		log.Println(err)
 	}
-	log.Println("-----")
-	log.Println(guildParam)
-	log.Println(channelParam)
-	log.Println(date_unix)
+
 	_, msgs := getMessages(db, guildParam, channelParam, date_unix)
-	for _, i := range(msgs.Messages){
-		log.Println(i.Message_id)
-	}
+
 	tmpl.Execute(w, *msgs)
 
 }
@@ -61,14 +64,9 @@ func messageHandlerDate(w http.ResponseWriter, r *http.Request){
 	if err != nil{
 		log.Println(err)
 	}
-	log.Println("-----")
-	log.Println(guildParam)
-	log.Println(channelParam)
-	log.Println(date_unix)
+
 	_, msgs := getMessages(db, guildParam, channelParam, date_unix)
-	for _, i := range(msgs.Messages){
-		log.Println(i.Message_id)
-	}
+
 	tmpl.Execute(w, *msgs)
 }
 
@@ -85,14 +83,9 @@ func messageHandlerNav(w http.ResponseWriter, r *http.Request){
 	if err != nil{
 		log.Println(err)
 	}
-	log.Println("-----")
-	log.Println(guildParam)
-	log.Println(channelParam)
-	log.Println(date_unix)
+
 	_, msgs := getMessages(db, guildParam, channelParam, date_unix)
-	// for _, i := range(msgs.Messages){
-	// 	log.Println(i.Message_id)
-	// }
+
 	tmpl.ExecuteTemplate(w,"msgs", *msgs)
 }
 

@@ -26,8 +26,10 @@ It's safe to say that forums, the medium that has acted as the internet's primar
 
 - Ability to 'rebuild' the server in the event of deletion
 - Commands to start tasks without having to restart the Bot
-- More supported databases
-- Cloud storage support
+- More supported databases (MariaDB, Postgres)
+- Cloud storage support (S3, B2, GCS)
+- Way for people to contribute chat history to the database
+- More robust frontend
 
 ## Instructions
 
@@ -52,9 +54,11 @@ It's safe to say that forums, the medium that has acted as the internet's primar
     - `--listen`
         - Listens for new messages (BOT only). Can be used in conjunction with other modes
     - `--download_media`
-        - Enable this flag to download attachments/files (Includes embedded files) (Not implemented)
+        - Enable this flag to download attachments/files (Includes embedded files) (Not implemented, downloads media by default)
     - `--deploy`
         - Mode to start the web server.  Can be used by itself or in conjunction with other modes.
+    - `--input="config_path"`
+        - Specify path to config file.  Cannot be used with any other flags.
 
 ## Contributing
 Pull requests are welcome. Please open an issue first to discuss what you would like to change.
