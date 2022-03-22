@@ -2,5 +2,6 @@
 *.db
 *.png
 *.txt
-/media/*
+/media*/*
 bigbrother.*
+*.json

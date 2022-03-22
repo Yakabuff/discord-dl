@@ -1,10 +1,18 @@
 # discord-dl
 
-discord-dl is a CLI tool and Discord Bot that can be used to archive discord channels in realtime.  
+discord-dl is a Discord Bot that can be used to archive discord channels in realtime.  
 
 It's safe to say that forums, the medium that has acted as the internet's primary knowledge center, are dead.  Communities are moving en-masse to walled off platforms like Discord that cannot be indexed by search engines and are completely inaccesible by those who are not registered users.  As a result, it is imperative to have a way of preserving these communities so its content can be openly accessible. 
 
+Note: As of discordgo v0.24.0, the ability to login with an user account has been removed. Further investigation is needed to reintroduce this feature
+
 ## Installation
+
+https://discordpy.readthedocs.io/en/stable/discord.html
+1) Make a Bot account: https://discord.com/developers/applications
+
+2) Invite the bot to the server
+
 ```git clone https://github.com/Yakabuff/discord-dl.git```
 
 ```cd discord-dl```
@@ -15,17 +23,19 @@ It's safe to say that forums, the medium that has acted as the internet's primar
 
 ```go install discord-dl``` or ```./discord-dl {flags}```
 
+3) Daemonize the bot
+
 ## Features
 
-- Archives messages, edits, embeds and attachments
+- Archives messages, edits, embeds, threads and attachments
 - Storing message history in an SQLite database
-- BOT capabilities so it can be installed by server administrators to archive messages in real time
+- Listen for messages to archive in real time
 - Simple web API/frontend to display and query messages
 
 ## To-do
 
 - Ability to 'rebuild' the server in the event of deletion
-- Commands to start tasks without having to restart the Bot
+- Job queue for improved concurrency and the ability to pause/stop jobs/see progress
 - More supported databases (MariaDB, Postgres)
 - Cloud storage support (S3, B2, GCS)
 - Way for people to contribute chat history to the database

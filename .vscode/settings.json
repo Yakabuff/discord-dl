@@ -1,0 +1,12 @@
+{
+  "editor.selectionClipboard": false,
+  "files.exclude": {
+    "bigbrother.bk": true,
+    "bigbrother.db": true,
+    "config.json": true,
+    "media": true,
+    "static": true,
+    "bin": true,
+    ".vscode": true
+  }
+}
