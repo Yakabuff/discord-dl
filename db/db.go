@@ -44,7 +44,11 @@ func Init_db(path string) (*Db, error) {
 	var file *os.File
 	if err == nil {
 		//Exists
-		dbConn, err = sql.Open(driver, "archive.db")
+		if path == "" {
+			dbConn, err = sql.Open(driver, "archive.db")
+		} else {
+			dbConn, err = sql.Open(driver, path)
+		}
 		if err != nil {
 			return nil, err
 		}

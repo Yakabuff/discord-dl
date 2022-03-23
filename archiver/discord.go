@@ -1,4 +1,3 @@
-// +build test
 package archiver
 
 import (
@@ -38,8 +37,10 @@ func (a Archiver) addHandlers() {
 }
 
 func (a Archiver) messageListen(dg *discordgo.Session, m *discordgo.MessageCreate) {
+
+	user, _ := a.Dg.User("@me")
 	// Ignore all messages created by the bot itself
-	if m.Author.ID == dg.State.User.ID {
+	if m.Author.ID == user.ID {
 		return
 	}
 	log.Println("[LISTEN] Detected new message. Fetching message " + m.ID + " from" + m.ChannelID)
@@ -66,15 +67,22 @@ func (a Archiver) messageListen(dg *discordgo.Session, m *discordgo.MessageCreat
 }
 
 func (a Archiver) messageUpdateListen(dg *discordgo.Session, m *discordgo.MessageUpdate) {
-	if m.Author.ID == dg.State.User.ID {
+	//Note: If message with link is sent, it does not  return all fields.... Get message ID and channelID and retrieve message this way instead.
+
+	message, err := dg.ChannelMessage(m.ChannelID, m.ID)
+	if err != nil {
+		log.Println("Failed to get edit: " + m.ID + " " + m.ChannelID)
+	}
+
+	if message.Author.ID == dg.State.User.ID {
 		return
 	}
 	log.Println("[LISTEN] Detected new message edit. Fetching message " + m.ID + " from" + m.ChannelID)
 	//filter out all messages that do not have an edit timestamp. Only listen for content edits
-	edited_timestamp := m.EditedTimestamp.Unix()
 
 	if m.EditedTimestamp != nil {
-		edit := models.NewEdit(m.ID, edited_timestamp, m.Content)
+		edited_timestamp := message.EditedTimestamp.Unix()
+		edit := models.NewEdit(message.ID, edited_timestamp, message.Content)
 		a.InsertEdit(edit)
 	}
 }

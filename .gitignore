@@ -4,4 +4,4 @@
 *.txt
 /media*/*
 bigbrother.*
-*.json
+/.vscode/*
