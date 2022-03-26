@@ -1,0 +1,159 @@
+package web
+
+import (
+	"html/template"
+	"log"
+	"net/http"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/yakabuff/discord-dl/db"
+	"github.com/yakabuff/discord-dl/models"
+)
+
+type Web struct {
+	db            db.Db
+	port          int
+	mediaLocation string
+}
+
+func NewWeb(db db.Db, port int, mediaLocation string) Web {
+	web := Web{}
+	web.db = db
+	web.port = port
+	web.mediaLocation = mediaLocation
+	return web
+}
+
+func (web Web) Deploy(Db db.Db) {
+	go func(Db db.Db) {
+		log.Println("starting web app on port: " + strconv.Itoa(web.port))
+		r := chi.NewRouter()
+		r.Route("/{guild}/{channel}", func(r chi.Router) {
+			//First 100 messages
+			r.Get("/", web.messageHandler)
+			//100 messages after specified date
+			r.Get("/{date}", web.messageHandlerDate)
+			//fetch next 100 messages ( date + 1) or fetch previous 100 messages ( date -1)
+			// r.Get("/{date}/{nav}", web.messageHandlerNav)
+		})
+
+		r.Get("/media/{channel}/{hash}", mediaHandler)
+		http.ListenAndServe(":"+strconv.Itoa(web.port), r)
+	}(Db)
+}
+
+func mediaHandler(w http.ResponseWriter, r *http.Request) {
+	channelParam := strings.TrimSpace(chi.URLParam(r, "channel"))
+	hashParam := strings.TrimSpace(chi.URLParam(r, "hash"))
+	path := filepath.FromSlash("media/" + channelParam + "/" + hashParam)
+	http.ServeFile(w, r, path)
+}
+
+func (web Web) messageHandler(w http.ResponseWriter, r *http.Request) {
+
+	guildParam := strings.TrimSpace(chi.URLParam(r, "guild"))
+	channelParam := strings.TrimSpace(chi.URLParam(r, "channel"))
+
+	date_unix := int(time.Now().Unix())
+
+	tmpl, err := template.ParseFiles("static/channel.html")
+	if err != nil {
+		log.Println(err)
+	}
+
+	_, msgs := web.db.GetMessages(guildParam, channelParam, date_unix, false)
+	for _, i := range msgs.Messages {
+		web.addEmbedResourceLink(i.Embeds, channelParam)
+		web.addAttachmentResourceLink(i.Attachments, channelParam)
+	}
+
+	tmpl.Execute(w, *msgs)
+
+}
+
+func (web Web) messageHandlerDate(w http.ResponseWriter, r *http.Request) {
+	guildParam := strings.TrimSpace(chi.URLParam(r, "guild"))
+	channelParam := strings.TrimSpace(chi.URLParam(r, "channel"))
+	dateParam := strings.TrimSpace(chi.URLParam(r, "*"))
+
+	date_unix, err := strconv.Atoi(dateParam)
+	if err != nil {
+		date_unix = int(time.Now().Unix())
+	}
+	tmpl, err := template.ParseFiles("static/channel.html")
+	if err != nil {
+		log.Println(err)
+	}
+
+	_, msgs := web.db.GetMessages(guildParam, channelParam, date_unix, false)
+
+	tmpl.Execute(w, *msgs)
+}
+
+// func (web Web) messageHandlerNav(w http.ResponseWriter, r *http.Request) {
+// 	guildParam := strings.TrimSpace(chi.URLParam(r, "guild"))
+// 	channelParam := strings.TrimSpace(chi.URLParam(r, "channel"))
+// 	dateParam := strings.TrimSpace(chi.URLParam(r, "date"))
+// 	afterParam := strings.TrimSpace(chi.URLParam(r, "nav"))
+
+// 	date_unix, err := strconv.Atoi(dateParam)
+// 	if err != nil {
+// 		date_unix = int(time.Now().Unix())
+// 	}
+// 	tmpl, err := template.ParseFiles("static/channel.html")
+// 	if err != nil {
+// 		log.Println(err)
+// 	}
+
+// 	var msgs *models.Messages
+// 	if afterParam == "next" {
+// 		_, msgs = web.db.GetMessages(guildParam, channelParam, date_unix, true)
+// 	} else if afterParam == "prev" {
+// 		_, msgs = web.db.GetMessages(guildParam, channelParam, date_unix, false)
+// 	}
+
+// 	tmpl.ExecuteTemplate(w, "msgs", *msgs)
+// }
+
+func (web Web) addEmbedResourceLink(embeds []models.EmbedOut, channel_id string) {
+	for i, _ := range embeds {
+		if embeds[i].EmbedImageHash != "" {
+			embeds[i].ResourcePathImage = filepath.FromSlash("/" + web.mediaLocation + "/" + channel_id + "/" + embeds[i].EmbedImageHash)
+		}
+		if embeds[i].EmbedThumbnailHash != "" {
+			embeds[i].ResourcePathThumbnail = filepath.FromSlash("/" + web.mediaLocation + "/" + channel_id + "/" + embeds[i].EmbedThumbnailHash)
+		}
+		if embeds[i].EmbedVideoHash != "" {
+			embeds[i].ResourcePathVideo = filepath.FromSlash("/" + web.mediaLocation + "/" + channel_id + "/" + embeds[i].EmbedVideoHash)
+		}
+	}
+}
+
+func (web Web) addAttachmentResourceLink(attachments []models.AttachmentOut, channel_id string) {
+	for i, _ := range attachments {
+		attachments[i].ResourcePath = filepath.FromSlash("/" + web.mediaLocation + "/" + channel_id + "/" + attachments[i].AttachmentHash)
+		s := strings.ToLower(strings.Split(attachments[i].AttachmentFilename, ".")[1])
+		if s == "png" || s == "jpg" || s == "jpeg" || s == "gif" {
+			attachments[i].ResourceType = "IMAGE"
+		} else if s == "mp4" || s == "mov" || s == "wmv" || s == "avi" || s == "flv" || s == "swf" || s == "mkv" || s == "webm" {
+			attachments[i].ResourceType = "VIDEO"
+		} else {
+			attachments[i].ResourceType = "FILE"
+		}
+		log.Println(attachments[i].ResourceType)
+	}
+}
+
+//need to somehow use ajax when going to next or prev page
+//when click next page, get date of last message, send via POST, server returns new URL and navigate to that URL. Update prev page button with old URL
+//at beginning: next has date of last message. prev has no date
+//next x1: next has date of last message. prev has no date
+//next x2: next has date of last message. prev has next x1's next
+//next x3: next has date of last message. prev has next x2's next
+//when click prev page, navigate to prev page using updated URL
+
+//click next/prev,

@@ -287,3 +287,150 @@ func (db Db) InsertAttachment(m models.Attachment) error {
 	}
 	return err
 }
+
+func (db Db) GetMessages(guild_id string, channel_id string, last_date int, after bool) (error, *models.Messages) {
+	log.Println("Getting messages")
+	var messages models.Messages
+	//use keyset pagination
+	//first page: fetch first 100 messages. get date > curr time. keep track of the date of the last message returned
+	//second page: fetch second batch of 100. get date > date of the last message returned in the previous batch
+	//query messages -> query edits -> query embeds -> query attachments
+	var stmt string
+	if after == true {
+		stmt = `SELECT * FROM messages where channel_id = $1 AND guild_id = $2 AND date > $3 ORDER BY date DESC LIMIT 100`
+	} else {
+		stmt = `SELECT * FROM messages where channel_id = $1 AND guild_id = $2 AND date < $3 ORDER BY date DESC LIMIT 100`
+	}
+
+	rows, err := db.DbConnection.Query(stmt, channel_id, guild_id, last_date)
+	if err != nil {
+		return err, nil
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var message models.MessageOut
+		err := rows.Scan(
+			&message.MessageId,
+			&message.ChannelId,
+			&message.GuildId,
+			&message.MessageTimestamp,
+			&message.Content,
+			&message.SenderId,
+			&message.SenderName,
+			&message.ReplyTo,
+			&message.EditTime,
+			&message.ThreadId)
+		if err != nil {
+			log.Println(err)
+			return err, nil
+		}
+
+		err, edits := db.GetEdits(message.MessageId)
+		if err != nil {
+			log.Println(err)
+			return err, nil
+		}
+		err, embeds := db.GetEmbeds(message.MessageId)
+		if err != nil {
+			return err, nil
+		}
+		err, attachments := db.GetAttachments(message.MessageId)
+		if err != nil {
+			return err, nil
+		}
+
+		// addEmbedResourceLink(embeds, message.ChannelId)
+		// addAttachmentResourceLink(attachments, message.ChannelId)
+		message.Edits = edits
+		message.Embeds = embeds
+		message.Attachments = attachments
+		messages.Messages = append(messages.Messages, message)
+	}
+
+	return nil, &messages
+}
+
+func (db Db) GetEdits(message_id string) (error, []models.Edit) {
+	var edits []models.Edit
+	stmt := `SELECT * FROM edits where message_id = $1`
+	rows, err := db.DbConnection.Query(stmt, message_id)
+	if err != nil {
+		return err, nil
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var edit models.Edit
+		err := rows.Scan(&edit.MessageId,
+			&edit.EditTime,
+			&edit.Content)
+
+		if err != nil {
+			return err, nil
+		}
+		edits = append(edits, edit)
+	}
+	return nil, edits
+}
+
+func (db Db) GetEmbeds(message_id string) (error, []models.EmbedOut) {
+	var embeds []models.EmbedOut
+	stmt := `SELECT * FROM embeds where message_id = $1`
+	rows, err := db.DbConnection.Query(stmt, message_id)
+	if err != nil {
+		return err, nil
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var embed models.EmbedOut
+		err := rows.Scan(
+			&embed.MessageId,
+			&embed.EmbedUrl,
+			&embed.EmbedTitle,
+			&embed.EmbedDescription,
+			&embed.EmbedTimestamp,
+			&embed.EmbedThumbnailUrl,
+			&embed.EmbedThumbnailHash,
+			&embed.EmbedImageUrl,
+			&embed.EmbedImageHash,
+			&embed.EmbedVideoUrl,
+			&embed.EmbedVideoHash,
+			&embed.EmbedFooter,
+			&embed.EmbedAuthorName,
+			&embed.EmbedAuthorUrl,
+			&embed.EmbedField)
+		if err != nil {
+			return err, nil
+		}
+
+		embeds = append(embeds, embed)
+	}
+	return nil, embeds
+}
+
+func (db Db) GetAttachments(message_id string) (error, []models.AttachmentOut) {
+	var attachments []models.AttachmentOut
+	stmt := `SELECT * FROM attachments where message_id = $1`
+	rows, err := db.DbConnection.Query(stmt, message_id)
+	if err != nil {
+		return err, nil
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var attachment models.AttachmentOut
+		err := rows.Scan(
+			&attachment.AttachmentId,
+			&attachment.MessageId,
+			&attachment.AttachmentFilename,
+			&attachment.AttachmentUrl,
+			&attachment.AttachmentHash)
+		if err != nil {
+			return err, nil
+		}
+
+		attachments = append(attachments, attachment)
+	}
+	return nil, attachments
+}

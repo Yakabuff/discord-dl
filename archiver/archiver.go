@@ -14,12 +14,14 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/yakabuff/discord-dl/db"
 	"github.com/yakabuff/discord-dl/models"
+	"github.com/yakabuff/discord-dl/web"
 )
 
 type Archiver struct {
 	Db   db.Db
 	Args models.Args
 	Dg   *discordgo.Session
+	Web  web.Web
 }
 
 func (a Archiver) ParseCliArgs() error {
@@ -30,6 +32,18 @@ func (a Archiver) ParseCliArgs() error {
 			return err
 		}
 	}
+
+	//Either listening or web deploy
+	if a.Args.Listen == true {
+		log.Println("Listening for changes...")
+		a.addHandlers()
+	}
+	if a.Args.Deploy == true {
+		log.Println("Starting webview...")
+		a.Web = web.NewWeb(a.Db, a.Args.DeployPort, a.Args.MediaLocation)
+		a.Web.Deploy(a.Db)
+	}
+
 	if a.Args.Mode != models.NONE {
 		switch a.Args.Mode {
 		case models.GUILD:
@@ -46,14 +60,7 @@ func (a Archiver) ParseCliArgs() error {
 			}
 		}
 	} else {
-		//Either listening or web deploy
-		if a.Args.Listen == true {
-			log.Println("I am here")
-			a.addHandlers()
-		}
-		if a.Args.Deploy == true {
-
-		}
+		//add slash command listener
 		fmt.Println("Bot is now running.  Press CTRL-C to exit.")
 		sc := make(chan os.Signal, 1)
 		signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
@@ -77,7 +84,7 @@ func (a Archiver) parseConfig(fileName string) error {
 		return err
 	}
 	a.Args = config
-	mode := checkFlagMode("", config.Guild, config.Channel, config.Dms)
+	mode := checkFlagMode("", config.Guild, config.Channel)
 	if mode == models.INVALID {
 		return errors.New("Invalid mode")
 	}
@@ -85,7 +92,7 @@ func (a Archiver) parseConfig(fileName string) error {
 	return nil
 }
 
-func checkFlagMode(input string, guild string, channel string, dms bool) models.Mode {
+func checkFlagMode(input string, guild string, channel string) models.Mode {
 	var count int
 	var mode models.Mode
 	if input != "" {
@@ -99,10 +106,6 @@ func checkFlagMode(input string, guild string, channel string, dms bool) models.
 	if channel != "" {
 		count++
 		mode = models.CHANNEL
-	}
-	if dms != false {
-		count++
-		mode = models.DMS
 	}
 	if count == 1 {
 		return mode
@@ -124,15 +127,14 @@ func (a Archiver) InitCli() models.Args {
 	input := flag.String("i", "", "Input mode. Gets config from input file")
 	guild := flag.String("guild", "", "Guild mode. Retrieves messages and channels from selected guild")
 	channel := flag.String("channel", "", "Retrieves messages from selected channel")
-	dms := flag.Bool("dms", false, "DM mode. Retrieves all DM conversations")
 	listen := flag.Bool("listen", false, "Listens for new messages/events and archives in real time.  Can only be used with a bot account")
 	deploy := flag.Bool("deploy", false, "Deploys webapp")
 	deployPort := flag.Int("deploy_port", 8080, "Set webview port")
-	blacklistedChannels := flag.String("blacklisted-channels", "", "Sets list of blacklisted channels as a string delimited by a space")
+	blacklistedChannels := flag.String("blacklisted-channels", "", "Sets list of blacklisted channel IDs as a string delimited by a space. Can only be used with guild")
 	mediaLocation := flag.String("media-location", "media", "Set location to store attachments and media")
 	flag.Parse()
 
-	mode := checkFlagMode(*input, *guild, *channel, *dms)
+	mode := checkFlagMode(*input, *guild, *channel)
 
 	if mode == models.INVALID {
 		fmt.Fprintln(os.Stderr, "Invalid flags")
@@ -151,7 +153,6 @@ func (a Archiver) InitCli() models.Args {
 		Input:               *input,
 		Guild:               *guild,
 		Channel:             *channel,
-		Dms:                 *dms,
 		Listen:              *listen,
 		Deploy:              *deploy,
 		DeployPort:          *deployPort,

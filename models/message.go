@@ -16,8 +16,8 @@ type MessageOut struct {
 	EditTime         string
 	ThreadId         string
 	Edits            []Edit
-	Embeds           []Embed
-	Attachments      []Attachment
+	Embeds           []EmbedOut
+	Attachments      []AttachmentOut
 }
 
 type Message struct {

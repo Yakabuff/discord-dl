@@ -16,7 +16,7 @@ func (a Archiver) GuildDownload(guildID string) error {
 	}
 	//download messages from every channel
 	for _, c := range channels {
-		if c.Type == discordgo.ChannelTypeGuildText {
+		if c.Type == discordgo.ChannelTypeGuildText && !contains(a.Args.BlacklistedChannels, c.ID) {
 
 			log.Printf("Archiving guild: %s channel: %s", guildID, c.ID)
 			err := a.ChannelDownload(c.ID)
@@ -28,4 +28,13 @@ func (a Archiver) GuildDownload(guildID string) error {
 	}
 
 	return nil
+}
+
+func contains(channels []string, id string) bool {
+	for _, a := range channels {
+		if a == id {
+			return true
+		}
+	}
+	return false
 }

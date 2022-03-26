@@ -1,8 +1,14 @@
 <!DOCTYPE html>
 <html>
+    <head>
+        <style>
+            table, th, td {
+            border: 1px solid;
+            }
+        </style>
+    </head>
     <body>
-
-    <h1> discord-dl</h1>
+        <h1> discord-dl</h1>
 
         <h3 id = "channel_id"></h3>
         <h3 id = "guild_id"></h3>
@@ -11,74 +17,220 @@
         {{block "msgs" .}}
             <div id = "messages">
                 {{range .Messages}}
-                    {{$channel := .Channel_id}}
-                    {{$guild := .Guild_id}}
+                    {{$channel := .ChannelId}}
+                    {{$guild := .GuildId}}
                     <div class = "message">
                         <ul>
-                            <li>Message ID: {{.Message_id}}</li>
-                            Channel ID:
-                            <li class = "channel_id"> {{.Channel_id}}</li>
-                            Guild ID:
-                            <li class = "guild_id"> {{.Guild_id}}</li>
-                            Message Timestamp:
-                            <li class = "message_timestamp"> {{.Message_timestamp}}</li>
-                            <li>Sender ID: {{.Sender_id }}</li>
-                            <li>Sender Name: {{.Sender_name}}</li>
-                            <li>Reply To: {{.Reply_to}}</li>
-                            <li>Content: {{.Content}}</li>
-                            <li>Last Edit Time: {{.Edit_time}}</li>
-
+                            <table>
+                                <tr>
+                                    <td>Message ID:</td>
+                                    <td>{{.MessageId}}</td>
+                                </tr>
+                                <tr>
+                                    <td>Channel ID:</td>
+                                    <td class = "channel_id"> {{.ChannelId}}</li></td>
+                                </tr>
+                                <tr>
+                                    <td>Guild ID:</td>
+                                    <td class = "guild_id"> {{.GuildId}}</td>
+                                </tr>
+                                <tr>
+                                    <td>Message Timestamp:</td>
+                                    <td class = "message_timestamp"> {{.MessageTimestamp}}</td>
+                                </tr>
+                                <tr>
+                                    <td>Sender ID:</td>
+                                    <td> {{.SenderId }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Sender Name:</td>
+                                    <td>{{.SenderName}}</td>
+                                </tr>
+                                {{if .ReplyTo}}
+                                <tr>
+                                    <td>Reply To:</td>
+                                    <td>{{.ReplyTo}}</td>
+                                </tr>
+                                {{end}}
+                                {{if .Content}}
+                                <tr>
+                                    <td>Content:</td>
+                                    <td>{{.Content}}</td>
+                                </tr>
+                                {{end}}
+                                {{if .EditTime}}
+                                <tr>
+                                    <td>Last Edit Time:</td>
+                                    <td> {{.EditTime}}</td>
+                                </tr>
+                                {{end}}
+                                {{if .ThreadId}}
+                                <tr>
+                                    <td>ThreadID:</td>
+                                    <td> {{.ThreadId}}</td>
+                                </tr>
+                                <tr>
+                                    <td>Link to thread:</td>
+                                    <td></td>
+                                </tr>
+                                {{end}}
+                            </table>
                             {{range .Edits}}
-                                <li>Edit Time: {{.Edit_time}}</li>
-                                <li>Edit Content: {{.Content}}</li>
+                                <table>
+                                    <tr>
+                                        <td>Edit Time:</td>
+                                        <td>{{.EditTime}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Edit Content:</td>
+                                        <td>{{.Content}}</td>
+                                    </tr>
+                                </table>
                             {{ end }}
 
                             {{range .Embeds}}
                                 <div class = "embed">
-                                    <li>Embed URL: {{.Embed_url}}</li>
-                                    <li>Embed timestamp: {{.Embed_timestamp}}</li>
-                                    <li>Embed title: {{.Embed_title}}</li>
-                                    <li>Embed author name: {{.Embed_author_name}}</li>
-                                    <li>Embed author URL: {{.Embed_author_url}}</li>
-                                    <li>Embed description: {{.Embed_description}}</li>
-                                    <li>Embed field: {{.Embed_field}}</li>
-                                    <li>Embed footer: {{.Embed_footer}}</li>
-                                    <li>Embed thumbnail URL: {{.Embed_thumbnail_url}}</li>
-                                    Embed thumbnail hash: 
-                                    <li class = "thumbnail_hash">{{.Embed_thumbnail_hash}}</li>
-                                    <li>Embed image URL: {{.Embed_image_url}}</li>
-                                    Embed image hash: 
-                                    <li class = "image_hash">{{.Embed_image_hash}}</li>
+                                    <table>
+                                        {{if .EmbedUrl}}
+                                        <tr>
+                                            <td>Embed URL:</td>
+                                            <td>{{.EmbedUrl}}</td>
+                                        </tr>
+                                        {{end}}
+                                        {{if .EmbedTimestamp}}
+                                        <tr>
+                                            <td>Embed timestamp:</td>
+                                            <td>{{.EmbedTimestamp}}</td>
+                                        </tr>
+                                        {{end}}
+                                        {{if .EmbedTitle}}
+                                        <tr>
+                                            <td>Embed title:</td>
+                                            <td>{{.EmbedTitle}}</td>
+                                        </tr>
+                                        {{end}}
+                                        {{if .EmbedAuthorName}}
+                                        <tr>
+                                            <td>Embed author name:</td>
+                                            <td>{{.EmbedAuthorName}}</td>
+                                        </tr>
+                                        {{end}}
+                                        {{if .EmbedAuthorUrl}}
+                                        <tr>
+                                            <td>Embed author URL:</td>
+                                            <td>{{.EmbedAuthorUrl}}</td>
+                                        </tr>
+                                        {{end}}
+                                        {{if .EmbedDescription}}
+                                        <tr>
+                                            <td>Embed description:</td>
+                                            <td>{{.EmbedDescription}}</td>
+                                        </tr>
+                                        {{end}}
+                                        {{if .EmbedField}}
+                                        <tr>
+                                            <td>Embed field:</td>
+                                            <td>{{.EmbedField}}</td>
+                                        </tr>
+                                        {{end}}
+                                        {{if .EmbedFooter}}
+                                        <tr>
+                                            <td>Embed footer:</td>
+                                            <td>{{.EmbedFooter}}</td>
+                                        </tr>
+                                        {{end}}
+                                        {{if .EmbedThumbnailUrl}}
+                                        <tr>
+                                            <td>Embed thumbnail URL:</td>
+                                            <td>{{.EmbedThumbnailUrl}}</td>
+                                        </tr>
+                                        {{end}}
+                                        {{if .EmbedThumbnailHash}}
+                                        <tr>
+                                            <td>Embed thumbnail hash: </td>
+                                            <td class = "thumbnail_hash">{{.EmbedThumbnailHash}}</td>
+                                        </tr>
+                                        {{end}}
+                                        {{if .EmbedImageUrl}}
+                                        <tr>
+                                            <td>Embed image URL:</td>
+                                            <td>{{.EmbedImageUrl}}</td>
+                                        </tr>
+                                        {{end}}
+                                        {{ if .EmbedImageHash }}
+                                        <tr>
+                                            <td>Embed image hash: </td>
+                                            <td class = "image_hash">{{.EmbedImageHash}}</td>
+                                        </tr>
+                                        {{end}}
+                                        {{ if .EmbedVideoUrl }}
+                                        <tr>
+                                            <td>Embed video URL:</td>
+                                            <td>{{.EmbedVideoUrl}}</td>
+                                        </tr>
+                                        {{end}}
+                                        {{ if .EmbedVideoHash }}
+                                        <tr>
+                                            <td>Embed video hash: </td>
+                                            <td class = "video_hash">{{.EmbedVideoHash}}</td>
+                                        </tr>
+                                        {{end}}
 
-                                    {{ if .Resource_path_thumbnail }}
-                                    <img width="320" height="240" src = "{{ .Resource_path_thumbnail }}" ></img>
-                                    {{end}}
-                                    {{ if .Resource_path_image }}
-                                    <img width="320" height="240" src = "{{ .Resource_path_image }}" ></img>
-                                    {{end}}
-
+                                        {{ if .ResourcePathThumbnail }}
+                                        <tr>
+                                            <td><img width="320" height="240" src = "{{ .ResourcePathThumbnail }}" ></img></td>
+                                        </tr>
+                                        {{end}}
+                                        {{ if .ResourcePathImage }}
+                                        <tr>
+                                            <td><img width="320" height="240" src = "{{ .ResourcePathImage }}" ></img></td>
+                                        </tr>
+                                        {{end}}
+                                        {{ if .ResourcePathVideo}}
+                                        <tr>
+                                            <td><video width="320" height="240" src = "{{ .ResourcePathVideo }}" ></video></td>
+                                        </tr>
+                                        {{end}}
+                                    </table>
                                 </div>
                             {{ end }}
 
                             {{range .Attachments}}
                                 <div class = "attachment">
-                                    <li>Attachment ID: {{.Attachment_id}}</li>
-                                    Attachment Hash:
-                                    <li class = "attachment_hash">{{.Attachment_hash}}</li>
-                                    Attachment filename:
-                                    <li class = "attachment_filename"> {{.Attachment_filename}}</li>
-                                    <li>Attachment URL {{.Attachment_url}}</li>
-                                    <li>Resource type {{.Resource_type}}</li>
-                                    {{ if eq .Resource_type "IMAGE"}}
-                                        <img width="320" height="240" src = "{{ .Resource_path }}"></img>
-                                    {{ end }}
-                                    {{ if eq .Resource_type "VIDEO" }}
-                                        <video width="320" height="240" controls>
-                                            <source src="{{ .Resource_path }}">
-                                        </video>
-                                    {{ end }}
-                                    <br>
-                                    <a href="{{ .Resource_path }}">Link to file</a>
+                                    <table>
+                                        <tr>
+                                            <td>Attachment ID:</td>
+                                            <td>{{.AttachmentId}}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Attachment Hash:</td>
+                                            <td class = "attachment_hash">{{.AttachmentHash}}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Attachment filename:</td>
+                                            <td class = "attachment_filename">{{.AttachmentFilename}}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Attachment URL </td>
+                                            <td>{{.AttachmentUrl}}</td>
+                                        </tr>
+                                        <tr>
+                                            {{ if eq .ResourceType "IMAGE"}}
+                                            <img width="320" height="240" src = "{{ .ResourcePath }}"></img>
+                                            {{ end }}
+                                        </tr>
+                                        <tr>
+                                            {{ if eq .ResourceType "VIDEO" }}
+                                            <video width="320" height="240" controls>
+                                                <source src="{{ .ResourcePath }}">
+                                            </video>
+                                            {{ end }}
+                                        </tr>
+                                        <tr>
+                                            <td>Link to file</td>
+                                            <td><a href="{{ .ResourcePath }}">Click here</a></td>
+                                        </tr>
+                                    </table>
                                 </div>
                             {{ end }}
                         </ul>
@@ -86,42 +238,9 @@
                 {{ end }}
             </div>
         {{ end }}
-        <button class = "prev"> Prev </button>
-        <button class = "next"> Next </button>
     </body>
-    <script>
-    class DoublyLinkedList {
-        constructor() {
-            this.head = null;
-            this.tail = null;
-            this.length = 0;
-        }
-        insertNode(){
-            //create node.
-            this.length = this.length + 1;
-            let curr = createNode(this.length);
-            //set new node tail to curr node head
-            curr.previous = page;
-            //set curr head to new node tail
-            page.next = curr;
-            //set page to curr
-            page = curr;
-            this.head = page;
-        }
-    }
-    function createNode(value) {
-        let elements = document.getElementsByClassName("message_timestamp");
-        
-        let u = elements[0].innerHTML;
-        let l = elements[elements.length-1].innerHTML;
-        return {
-        value: value,
-        upperDate: u,
-        lowerDate: l,
-        next: null,
-        previous: null,
-        }
-    };
+    <!-- <script>
+
 
     function setButtonsDisabled(val){
         document.getElementsByClassName("prev")[0].disabled = val;
@@ -143,12 +262,6 @@
                 e.outerHTML = xhr.responseText;
                 console.log(xhr.status);
 
-                if (page === dLinkedList.head){
-                    dLinkedList.insertNode();
-                }else{
-                    page = page.next;
-                }
-
                 setButtonsDisabled(false);
             }
         }
@@ -167,12 +280,7 @@
                 var e = document.getElementById("messages");
                 e.outerHTML = xhr.responseText;
                 console.log(xhr.status);
-                        //if curr node val == 1, do nothing
-                if (page == dLinkedList.tail){
-                    return;
-                }else{
-                    page = page.previous;
-                }
+
                 setButtonsDisabled(false);
             }
         }
@@ -189,12 +297,6 @@
     var dLinkedList;
     window.onload = function() {
 
-        dLinkedList = new DoublyLinkedList();
-        page = createNode(1)
-        dLinkedList.head=page;
-        dLinkedList.tail = page;
-        dLinkedList.length = 1;
-
         channel_id = document.getElementsByClassName("channel_id")[0].innerHTML;
         guild_id = document.getElementsByClassName("guild_id")[0].innerHTML;
         let s= document.getElementById("channel_id");
@@ -207,5 +309,5 @@
         document.getElementsByClassName("next")[0].addEventListener("click", nextButton);
         document.getElementsByClassName("next")[1].addEventListener("click", nextButton);
     };
-    </script>
+    </script> -->
 </html>

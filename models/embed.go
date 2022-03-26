@@ -3,7 +3,7 @@ package models
 type EmbedOut struct {
 	MessageId             string
 	EmbedUrl              string
-	EmbedUitle            string
+	EmbedTitle            string
 	EmbedDescription      string
 	EmbedTimestamp        string
 	EmbedThumbnailUrl     string
@@ -18,6 +18,7 @@ type EmbedOut struct {
 	EmbedField            string
 	ResourcePathThumbnail string
 	ResourcePathImage     string
+	ResourcePathVideo     string
 }
 
 type Embed struct {

@@ -2,9 +2,9 @@
 
 discord-dl is a Discord Bot that can be used to archive discord channels in realtime.  
 
-It's safe to say that forums, the medium that has acted as the internet's primary knowledge center, are dead.  Communities are moving en-masse to walled off platforms like Discord that cannot be indexed by search engines and are completely inaccesible by those who are not registered users.  As a result, it is imperative to have a way of preserving these communities so its content can be openly accessible. 
+It's safe to say that forums, the medium that has once acted as the internet's primary knowledge center, are dead.  Communities are moving en-masse to walled off platforms like Discord that cannot be indexed by search engines and are completely inaccesible by those who are not registered users.  As a result, it is imperative to have a way of preserving these communities so valuable content can remain openly accessible. 
 
-Note: As of discordgo v0.24.0, the ability to login with an user account has been removed. Further investigation is needed to reintroduce this feature
+Note: As of discordgo v0.24.0, the ability to login with an user account has been removed. Further investigation is needed to reintroduce this feature.
 
 ## Installation
 
@@ -23,7 +23,7 @@ https://discordpy.readthedocs.io/en/stable/discord.html
 
 ```go install discord-dl``` or ```./discord-dl {flags}```
 
-3) Daemonize the bot
+3) Daemonize the bot (optional)
 
 ## Features
 
@@ -55,8 +55,6 @@ https://discordpy.readthedocs.io/en/stable/discord.html
         - Specify the date or message ID to get messages before
     - `--after=YYYY-MM-DD` or `--after=message_id`
         - Specify the date or message ID to get messages after
-    - `--dms=true`
-        - Downloads all DM channels
     - `--progress`
         - Output your progress. (Not implemented)
     - `--fast-update`
@@ -64,7 +62,7 @@ https://discordpy.readthedocs.io/en/stable/discord.html
     - `--listen`
         - Listens for new messages (BOT only). Can be used in conjunction with other modes
     - `--download_media`
-        - Enable this flag to download attachments/files (Includes embedded files) (Not implemented, downloads media by default)
+        - Enable this flag to download attachments/files (Includes embedded files)
     - `--deploy`
         - Mode to start the web server.  Can be used by itself or in conjunction with other modes.
     - `--input="config_path"`
