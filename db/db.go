@@ -289,7 +289,6 @@ func (db Db) InsertAttachment(m models.Attachment) error {
 }
 
 func (db Db) GetMessages(guild_id string, channel_id string, last_date int, after bool) (error, *models.Messages) {
-	log.Println("Getting messages")
 	var messages models.Messages
 	//use keyset pagination
 	//first page: fetch first 100 messages. get date > curr time. keep track of the date of the last message returned
@@ -297,9 +296,9 @@ func (db Db) GetMessages(guild_id string, channel_id string, last_date int, afte
 	//query messages -> query edits -> query embeds -> query attachments
 	var stmt string
 	if after == true {
-		stmt = `SELECT * FROM messages where channel_id = $1 AND guild_id = $2 AND date > $3 ORDER BY date DESC LIMIT 100`
+		stmt = `SELECT * FROM messages where channel_id = $1 AND guild_id = $2 AND date > $3 ORDER BY date DESC LIMIT 10`
 	} else {
-		stmt = `SELECT * FROM messages where channel_id = $1 AND guild_id = $2 AND date < $3 ORDER BY date DESC LIMIT 100`
+		stmt = `SELECT * FROM messages where channel_id = $1 AND guild_id = $2 AND date < $3 ORDER BY date DESC LIMIT 10`
 	}
 
 	rows, err := db.DbConnection.Query(stmt, channel_id, guild_id, last_date)
@@ -347,7 +346,6 @@ func (db Db) GetMessages(guild_id string, channel_id string, last_date int, afte
 		message.Attachments = attachments
 		messages.Messages = append(messages.Messages, message)
 	}
-
 	return nil, &messages
 }
 

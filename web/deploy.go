@@ -38,7 +38,7 @@ func (web Web) Deploy(Db db.Db) {
 			//100 messages after specified date
 			r.Get("/{date}", web.messageHandlerDate)
 			//fetch next 100 messages ( date + 1) or fetch previous 100 messages ( date -1)
-			// r.Get("/{date}/{nav}", web.messageHandlerNav)
+			r.Get("/{date}/{nav}", web.messageHandlerNav)
 		})
 
 		r.Get("/media/{channel}/{hash}", mediaHandler)
@@ -54,7 +54,7 @@ func mediaHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (web Web) messageHandler(w http.ResponseWriter, r *http.Request) {
-
+	log.Println(r.Method + " " + r.URL.Path)
 	guildParam := strings.TrimSpace(chi.URLParam(r, "guild"))
 	channelParam := strings.TrimSpace(chi.URLParam(r, "channel"))
 
@@ -65,10 +65,16 @@ func (web Web) messageHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 
-	_, msgs := web.db.GetMessages(guildParam, channelParam, date_unix, false)
-	for _, i := range msgs.Messages {
+	err, msgs := web.db.GetMessages(guildParam, channelParam, date_unix, false)
+	if err != nil {
+		log.Println(err)
+	}
+	for j, i := range msgs.Messages {
 		web.addEmbedResourceLink(i.Embeds, channelParam)
 		web.addAttachmentResourceLink(i.Attachments, channelParam)
+		if msgs.Messages[j].ThreadId != "" {
+			msgs.Messages[j].ThreadPath = filepath.FromSlash("/" + i.GuildId + "/" + i.ThreadId + "/")
+		}
 	}
 
 	tmpl.Execute(w, *msgs)
@@ -76,6 +82,7 @@ func (web Web) messageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (web Web) messageHandlerDate(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method + " " + r.URL.Path)
 	guildParam := strings.TrimSpace(chi.URLParam(r, "guild"))
 	channelParam := strings.TrimSpace(chi.URLParam(r, "channel"))
 	dateParam := strings.TrimSpace(chi.URLParam(r, "*"))
@@ -89,35 +96,60 @@ func (web Web) messageHandlerDate(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 
-	_, msgs := web.db.GetMessages(guildParam, channelParam, date_unix, false)
-
+	err, msgs := web.db.GetMessages(guildParam, channelParam, date_unix, false)
+	if err != nil {
+		log.Println(err)
+	}
+	for j, i := range msgs.Messages {
+		web.addEmbedResourceLink(i.Embeds, channelParam)
+		web.addAttachmentResourceLink(i.Attachments, channelParam)
+		if msgs.Messages[j].ThreadId != "" {
+			msgs.Messages[j].ThreadPath = filepath.FromSlash("/" + i.GuildId + "/" + i.ThreadId + "/")
+		}
+	}
 	tmpl.Execute(w, *msgs)
 }
 
-// func (web Web) messageHandlerNav(w http.ResponseWriter, r *http.Request) {
-// 	guildParam := strings.TrimSpace(chi.URLParam(r, "guild"))
-// 	channelParam := strings.TrimSpace(chi.URLParam(r, "channel"))
-// 	dateParam := strings.TrimSpace(chi.URLParam(r, "date"))
-// 	afterParam := strings.TrimSpace(chi.URLParam(r, "nav"))
+func (web Web) messageHandlerNav(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method + " " + r.URL.Path)
+	guildParam := strings.TrimSpace(chi.URLParam(r, "guild"))
+	channelParam := strings.TrimSpace(chi.URLParam(r, "channel"))
+	dateParam := strings.TrimSpace(chi.URLParam(r, "date"))
+	afterParam := strings.TrimSpace(chi.URLParam(r, "nav"))
 
-// 	date_unix, err := strconv.Atoi(dateParam)
-// 	if err != nil {
-// 		date_unix = int(time.Now().Unix())
-// 	}
-// 	tmpl, err := template.ParseFiles("static/channel.html")
-// 	if err != nil {
-// 		log.Println(err)
-// 	}
+	date_unix, err := strconv.Atoi(dateParam)
+	if err != nil {
+		date_unix = int(time.Now().Unix())
+	}
+	tmpl, err := template.ParseFiles("static/channel.html")
+	if err != nil {
+		log.Println(err)
+	}
 
-// 	var msgs *models.Messages
-// 	if afterParam == "next" {
-// 		_, msgs = web.db.GetMessages(guildParam, channelParam, date_unix, true)
-// 	} else if afterParam == "prev" {
-// 		_, msgs = web.db.GetMessages(guildParam, channelParam, date_unix, false)
-// 	}
+	var msgs *models.Messages
+	if afterParam == "next" {
+		err, msgs = web.db.GetMessages(guildParam, channelParam, date_unix, true)
+		if err != nil {
+			log.Println(err)
+		}
+	} else if afterParam == "prev" {
+		err, msgs = web.db.GetMessages(guildParam, channelParam, date_unix, false)
+		if err != nil {
+			log.Println(err)
+		}
+	}
+	if len(msgs.Messages) != 0 {
+		for j, i := range msgs.Messages {
+			web.addEmbedResourceLink(i.Embeds, channelParam)
+			web.addAttachmentResourceLink(i.Attachments, channelParam)
+			if msgs.Messages[j].ThreadId != "" {
+				msgs.Messages[j].ThreadPath = filepath.FromSlash("/" + i.GuildId + "/" + i.ThreadId + "/")
+			}
+		}
+	}
 
-// 	tmpl.ExecuteTemplate(w, "msgs", *msgs)
-// }
+	tmpl.ExecuteTemplate(w, "msgs", *msgs)
+}
 
 func (web Web) addEmbedResourceLink(embeds []models.EmbedOut, channel_id string) {
 	for i, _ := range embeds {
@@ -144,7 +176,6 @@ func (web Web) addAttachmentResourceLink(attachments []models.AttachmentOut, cha
 		} else {
 			attachments[i].ResourceType = "FILE"
 		}
-		log.Println(attachments[i].ResourceType)
 	}
 }
 

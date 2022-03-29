@@ -15,6 +15,7 @@ type MessageOut struct {
 	ReplyTo          string
 	EditTime         string
 	ThreadId         string
+	ThreadPath       string
 	Edits            []Edit
 	Embeds           []EmbedOut
 	Attachments      []AttachmentOut

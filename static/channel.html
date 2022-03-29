@@ -58,7 +58,7 @@
                                     <td>{{.Content}}</td>
                                 </tr>
                                 {{end}}
-                                {{if .EditTime}}
+                                {{if ne .EditTime "-1"}}
                                 <tr>
                                     <td>Last Edit Time:</td>
                                     <td> {{.EditTime}}</td>
@@ -69,9 +69,11 @@
                                     <td>ThreadID:</td>
                                     <td> {{.ThreadId}}</td>
                                 </tr>
+                                {{end}}
+                                {{if .ThreadPath}}
                                 <tr>
                                     <td>Link to thread:</td>
-                                    <td></td>
+                                    <td><a href="{{.ThreadPath}}">Click here</a></td>
                                 </tr>
                                 {{end}}
                             </table>
@@ -238,10 +240,15 @@
                 {{ end }}
             </div>
         {{ end }}
+        <button class = "prev"> Prev </button>
+        <button class = "next"> Next </button>
     </body>
-    <!-- <script>
+    <script>
 
-
+    var topDate;
+    var bottomDate;
+    var guild_id;
+    var channel_id;
     function setButtonsDisabled(val){
         document.getElementsByClassName("prev")[0].disabled = val;
         document.getElementsByClassName("prev")[1].disabled = val;
@@ -252,16 +259,23 @@
     function nextButton(){
         //call endpoint
         let msgs = document.getElementById("messages");
-        let date = parseInt(page.lowerDate) - 1
+        let date = parseInt(topDate)
         let xhr = new XMLHttpRequest();
+
         xhr.open("GET", "/"+guild_id+"/"+channel_id+"/"+date+"/next", true);
         xhr.onreadystatechange = function(){
             if (xhr.readyState == 4 && xhr.status == 200) {
+                if (xhr.responseText.length == 79){
+                    return
+                }
                 setButtonsDisabled(true);
                 var e = document.getElementById("messages");
                 e.outerHTML = xhr.responseText;
                 console.log(xhr.status);
-
+                topDate = document.getElementsByClassName("message_timestamp")[0].innerHTML
+                bottomDate = document.getElementsByClassName("message_timestamp")[document.getElementsByClassName("message_timestamp").length-1].innerHTML
+                console.log(topDate)
+                console.log(bottomDate)
                 setButtonsDisabled(false);
             }
         }
@@ -276,27 +290,33 @@
         let xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function(){
             if (xhr.readyState == 4 && xhr.status == 200) {
+                if (xhr.responseText.length == 79){
+                    return
+                }
                 setButtonsDisabled(true);
                 var e = document.getElementById("messages");
                 e.outerHTML = xhr.responseText;
                 console.log(xhr.status);
-
+                topDate = document.getElementsByClassName("message_timestamp")[0].innerHTML
+                bottomDate = document.getElementsByClassName("message_timestamp")[document.getElementsByClassName("message_timestamp").length-1].innerHTML
+                console.log(topDate)
+                console.log(bottomDate)
                 setButtonsDisabled(false);
             }
         }
-        let date = parseInt(page.previous.upperDate) + 1
+        let date = parseInt(bottomDate)
         xhr.open("GET", "/"+guild_id+"/"+channel_id+"/"+date+"/prev", true);
         try { xhr.send(); } catch (err) { 
             console.log(err)
             return;
-        }        
+        }
+                
     }
-    var page;
-    var guild_id;
-    var channel_id;
-    var dLinkedList;
-    window.onload = function() {
 
+
+    window.onload = function() {
+        topDate = document.getElementsByClassName("message_timestamp")[0].innerHTML
+        bottomDate = document.getElementsByClassName("message_timestamp")[document.getElementsByClassName("message_timestamp").length-1].innerHTML
         channel_id = document.getElementsByClassName("channel_id")[0].innerHTML;
         guild_id = document.getElementsByClassName("guild_id")[0].innerHTML;
         let s= document.getElementById("channel_id");
@@ -308,6 +328,7 @@
         document.getElementsByClassName("prev")[1].addEventListener("click", prevButton);
         document.getElementsByClassName("next")[0].addEventListener("click", nextButton);
         document.getElementsByClassName("next")[1].addEventListener("click", nextButton);
+
     };
-    </script> -->
+    </script>
 </html>

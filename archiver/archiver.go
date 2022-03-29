@@ -34,7 +34,7 @@ func (a Archiver) ParseCliArgs() error {
 	}
 
 	//Either listening or web deploy
-	if a.Args.Listen == true {
+	if a.Args.Listen == true && strings.HasPrefix(a.Args.Token, "Bot") {
 		log.Println("Listening for changes...")
 		a.addHandlers()
 	}

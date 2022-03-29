@@ -4,26 +4,27 @@ discord-dl is a Discord Bot that can be used to archive discord channels in real
 
 It's safe to say that forums, the medium that has once acted as the internet's primary knowledge center, are dead.  Communities are moving en-masse to walled off platforms like Discord that cannot be indexed by search engines and are completely inaccesible by those who are not registered users.  As a result, it is imperative to have a way of preserving these communities so valuable content can remain openly accessible. 
 
-Note: As of discordgo v0.24.0, the ability to login with an user account has been removed. Further investigation is needed to reintroduce this feature.
+Note: While I recognize that there is no way around selfbots especially when it comes to archiving, it is against Discord TOS.  Use at your own discretion.
 
 ## Installation
 
-https://discordpy.readthedocs.io/en/stable/discord.html
-1) Make a Bot account: https://discord.com/developers/applications
+1) Install Go
 
-2) Invite the bot to the server
+2) Make a Bot account: https://discord.com/developers/applications
 
-```git clone https://github.com/Yakabuff/discord-dl.git```
+3) ```git clone https://github.com/Yakabuff/discord-dl.git```
 
-```cd discord-dl```
+    ```cd discord-dl```
 
-```make build```
+    ```make build```
 
-```cd bin```
+    ```cd bin```
 
-```go install discord-dl``` or ```./discord-dl {flags}```
+    ```go install discord-dl```
 
-3) Daemonize the bot (optional)
+4) Invite the bot to the server: https://discordpy.readthedocs.io/en/stable/discord.html
+
+5) Daemonize the bot (optional) or run the bot
 
 ## Features
 
@@ -67,6 +68,8 @@ https://discordpy.readthedocs.io/en/stable/discord.html
         - Mode to start the web server.  Can be used by itself or in conjunction with other modes.
     - `--input="config_path"`
         - Specify path to config file.  Cannot be used with any other flags.
+    - `--output="path"`
+        - Specify path to database.  Will fallback to default value (archive.db) if empty.
 
 ## Contributing
 Pull requests are welcome. Please open an issue first to discuss what you would like to change.

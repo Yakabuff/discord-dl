@@ -44,6 +44,7 @@ func (a Archiver) messageListen(dg *discordgo.Session, m *discordgo.MessageCreat
 		return
 	}
 	log.Println("[LISTEN] Detected new message. Fetching message " + m.ID + " from" + m.ChannelID)
+	guildID := m.GuildID
 	//If message contains something that resembles a URL, wait a few seconds for discord to get embed info
 	//https://github.com/bwmarrin/discordgo/issues/1066
 	if strings.Contains(m.Content, "https://") || strings.Contains(m.Content, "http://") {
@@ -52,16 +53,24 @@ func (a Archiver) messageListen(dg *discordgo.Session, m *discordgo.MessageCreat
 			m, err := dg.ChannelMessage(ChannelID, ID)
 			if err != nil {
 				log.Println("Could not fetch " + m.ID + " from " + m.ChannelID)
+				return
 			}
+			m.GuildID = guildID
 			err = a.InsertMessage(m, false)
 			if err != nil {
 				log.Println("Could not insert message " + m.ID + " from " + m.ChannelID)
 			}
 		}(m.ID, m.ChannelID)
 	} else {
-		err := a.InsertMessage(m.Message, false)
+		m, err := dg.ChannelMessage(m.ChannelID, m.ID)
 		if err != nil {
-			log.Println("Could not insert message " + m.Message.ID + " from " + m.ChannelID)
+			log.Println("Could not fetch " + m.ID + " from " + m.ChannelID)
+			return
+		}
+		m.GuildID = guildID
+		err = a.InsertMessage(m, false)
+		if err != nil {
+			log.Println("Could not insert message " + m.ID + " from " + m.ChannelID)
 		}
 	}
 }
