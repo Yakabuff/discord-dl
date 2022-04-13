@@ -48,13 +48,21 @@ func (a Archiver) ParseCliArgs() error {
 		switch a.Args.Mode {
 		case models.GUILD:
 			fmt.Println("Archiving guild")
-			err := a.GuildDownload(a.Args.Guild)
+			err := a.IndexGuild(a.Args.Guild)
+			if err != nil {
+				return err
+			}
+			err = a.GuildDownload(a.Args.Guild)
 			if err != nil {
 				return err
 			}
 		case models.CHANNEL:
 			fmt.Println("Selected channel mode")
-			err := a.ChannelDownload(a.Args.Channel)
+			err := a.IndexChannel(a.Args.Channel)
+			if err != nil {
+				return err
+			}
+			err = a.ChannelDownload(a.Args.Channel)
 			if err != nil {
 				return err
 			}

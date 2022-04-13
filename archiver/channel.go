@@ -125,11 +125,13 @@ func (a Archiver) DownloadRangeDate(after string, before string, channel_id stri
 }
 
 func (a Archiver) DownloadMessages(before_id string, after_id string, channel_id string, guild_id string, fast_update bool) error {
+
 	messages, error := a.Dg.ChannelMessages(channel_id, 100, before_id, "", "")
 	if error != nil {
 		log.Println(error)
 		return error
 	}
+	//Start archiving messages
 	var in_range bool = true
 	for len(messages) != 0 && in_range {
 		log.Println(len(messages))

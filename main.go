@@ -23,9 +23,9 @@ func main() {
 	archiver.Dg = dg
 
 	archiver.Db = *db
-
 	err = archiver.ParseCliArgs()
 	if err != nil {
 		fmt.Println(err)
 	}
+
 }

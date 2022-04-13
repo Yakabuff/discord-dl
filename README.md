@@ -1,10 +1,10 @@
 # discord-dl
-
+![logo](ddl.png)
 discord-dl is a Discord Bot that can be used to archive discord channels in realtime.  
 
 It's safe to say that forums, the medium that has once acted as the internet's primary knowledge center, are dead.  Communities are moving en-masse to walled off platforms like Discord that cannot be indexed by search engines and are completely inaccesible by those who are not registered users.  As a result, it is imperative to have a way of preserving these communities so valuable content can remain openly accessible. 
 
-Note: While I recognize that there is no way around selfbots especially when it comes to archiving, it is against Discord TOS.  Use at your own discretion.
+Note: While I recognize that there is no alternative to selfbots especially when it comes to archiving, it is unfortunately against Discord TOS.  Use at your own discretion.
 
 ## Installation
 
