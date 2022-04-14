@@ -32,6 +32,11 @@ func (web Web) Deploy(Db db.Db) {
 	go func(Db db.Db) {
 		log.Println("starting web app on port: " + strconv.Itoa(web.port))
 		r := chi.NewRouter()
+		r.Route("/index", func(r chi.Router) {
+			r.Get("/", web.guildHandler)
+			r.Get("/{guild}", web.channelHandler)
+		})
+
 		r.Route("/{guild}/{channel}", func(r chi.Router) {
 			//First 100 messages
 			r.Get("/", web.messageHandler)
@@ -51,6 +56,37 @@ func mediaHandler(w http.ResponseWriter, r *http.Request) {
 	hashParam := strings.TrimSpace(chi.URLParam(r, "hash"))
 	path := filepath.FromSlash("media/" + channelParam + "/" + hashParam)
 	http.ServeFile(w, r, path)
+}
+
+func (web Web) guildHandler(w http.ResponseWriter, r *http.Request) {
+
+	guilds, err := web.db.GetAllGuilds()
+
+	if err != nil {
+		log.Println(err)
+	}
+	web.addGuildMetadataResourceLink(guilds)
+
+	g := models.Guilds{Guilds: guilds}
+	tmpl, err := template.ParseFiles("static/index.html")
+	if err != nil {
+		log.Println(err)
+	}
+	tmpl.Execute(w, g)
+}
+
+func (web Web) channelHandler(w http.ResponseWriter, r *http.Request) {
+	guildParam := strings.TrimSpace(chi.URLParam(r, "guild"))
+	channels, err := web.db.GetChannelsFromGuild(guildParam)
+	if err != nil {
+		log.Println(err)
+	}
+	c := models.Channels{Channels: channels}
+	tmpl, err := template.ParseFiles("static/channels.html")
+	if err != nil {
+		log.Println(err)
+	}
+	tmpl.Execute(w, c)
 }
 
 func (web Web) messageHandler(w http.ResponseWriter, r *http.Request) {
@@ -163,6 +199,14 @@ func (web Web) addEmbedResourceLink(embeds []models.EmbedOut, channel_id string)
 			embeds[i].ResourcePathVideo = filepath.FromSlash("/" + web.mediaLocation + "/" + channel_id + "/" + embeds[i].EmbedVideoHash)
 		}
 	}
+}
+
+func (web Web) addGuildMetadataResourceLink(guilds []models.GuildOut) {
+	for i := range guilds {
+		guilds[i].GuildBannerResourcePath = filepath.FromSlash("/" + web.mediaLocation + "/" + guilds[i].GuildID + "/" + guilds[i].BannerHash)
+		guilds[i].GuildIconResourcePath = filepath.FromSlash("/" + web.mediaLocation + "/" + guilds[i].GuildID + "/" + guilds[i].IconHash)
+	}
+
 }
 
 func (web Web) addAttachmentResourceLink(attachments []models.AttachmentOut, channel_id string) {

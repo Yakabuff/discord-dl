@@ -1,6 +1,31 @@
 <html>
-
+    <head>
+        <style>
+            table, th, td {
+            border: 1px solid;
+            }
+        </style>
+    </head>
+    <body>
     <h1>Guilds</h1>
     <!----Links to each guild-->
-    <li></li>
+    <div id = "guilds">
+
+        {{range .Guilds}}
+        <table>
+            <tr>
+                {{ if .IconHash}}
+                <td><img width="100" height="100" src ="{{ .GuildIconResourcePath }}"></img></td>
+                {{end}}
+                <td><a href="/index/{{ .GuildID }}">{{ .GuildID }}</a></td>
+                <td>{{ .Name }}</td>
+                {{ if .BannerHash  }}
+                <td>{{ .GuildBannerResourcePath }}</td>
+                {{end}}
+            </tr>
+        </table>
+        {{ end }}
+
+    </div>
+    </body>
 </html>

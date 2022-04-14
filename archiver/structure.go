@@ -169,43 +169,45 @@ func (a Archiver) IndexGuild(guild string) error {
 	if err != nil {
 		return err
 	}
+	var iconHash string
+	var bannerHash string
 	if g.ID != "" {
-		hash, err2 := common.DownloadFile(g.IconURL(), g.ID, a.Args.MediaLocation)
-		if err2 != nil {
-			log.Println(err2)
+		iconHash, err = common.DownloadFile(g.IconURL(), g.ID, a.Args.MediaLocation)
+		if err != nil {
+			log.Println(err)
 		}
-		if hash != g.Icon {
+		if iconHash != g.Icon {
 			log.Println("Mismatch icon hashes")
-			log.Println(hash + " vs " + g.Icon)
+			log.Println(iconHash + " vs " + g.Icon)
 		}
 		//Insert and download guild icon if different.  If g.Icon != select icon_hash from guild_icon ORDER BY date ASC LIMIT 1
 
-		err = a.InsertGuildHistoricalIcons(g.ID, g.Icon)
+		err = a.InsertGuildHistoricalIcons(g.ID, iconHash)
 		if err != nil {
 			return err
 		}
 	}
 	if g.Banner != "" {
-		hashBanner, err3 := common.DownloadFile(g.BannerURL(), g.ID, a.Args.MediaLocation)
-		if err3 != nil {
-			log.Println(err3)
+		bannerHash, err := common.DownloadFile(g.BannerURL(), g.ID, a.Args.MediaLocation)
+		if err != nil {
+			log.Println(err)
 		}
-		if hashBanner != g.Banner {
+		if bannerHash != g.Banner {
 			log.Println("mismatch banner hash")
 		}
 		//Insert and download guild banner if different
 
-		err = a.InsertGuildHistoricalBanner(g.ID, hashBanner)
+		err = a.InsertGuildHistoricalBanner(g.ID, bannerHash)
 		if err != nil {
 			return err
 		}
 	}
-	err = a.InsertGuildMetadata(g.ID, g.Name, g.Icon, g.Banner)
+	err = a.InsertGuildMetadata(g.ID, g.Name, iconHash, bannerHash)
 	if err != nil {
 		return err
 	}
 	//Update guild with new metadata (if any)
-	err = a.Db.UpdateGuildMetadata(g.ID, g.Name, g.Icon, g.Banner)
+	err = a.Db.UpdateGuildMetadata(g.ID, g.Name, iconHash, bannerHash)
 	return err
 }
 

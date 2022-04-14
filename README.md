@@ -1,4 +1,4 @@
-# discord-dl
+
 ![logo](ddl.png)
 
 discord-dl is a Discord Bot that can be used to archive discord channels in realtime.  

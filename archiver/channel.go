@@ -180,6 +180,7 @@ func (a Archiver) DownloadMessages(before_id string, after_id string, channel_id
 				}
 				if m.Thread != nil {
 					log.Println("Thread spotted. Traversing thread: " + m.Thread.ID)
+					a.IndexChannel(m.Thread.ID)
 					err := a.DownloadMessages("", "", m.Thread.ID, m.Thread.GuildID, fast_update)
 					if err != nil {
 						return err

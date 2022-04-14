@@ -154,7 +154,7 @@ func (db Db) GetAttachments(message_id string) (error, []models.AttachmentOut) {
 
 func (db Db) GetChannelsFromGuild(guild_id string) ([]models.Channel, error) {
 	var channels []models.Channel
-	stmt := `SELECT * FROM channels where guild_id = $1 AND is_thread = 0`
+	stmt := `SELECT channel_id, name, topic, guild_id FROM channels_meta where guild_id = $1 AND is_thread = 0`
 	rows, err := db.DbConnection.Query(stmt, guild_id)
 	if err != nil {
 		return nil, err
@@ -165,7 +165,8 @@ func (db Db) GetChannelsFromGuild(guild_id string) ([]models.Channel, error) {
 		err := rows.Scan(
 			&channel.ChannelID,
 			&channel.Name,
-			&channel.Topic)
+			&channel.Topic,
+			&channel.GuildID)
 
 		if err != nil {
 			return nil, err
@@ -176,17 +177,18 @@ func (db Db) GetChannelsFromGuild(guild_id string) ([]models.Channel, error) {
 	return channels, nil
 }
 
-func (db Db) GetAllGuilds() ([]models.Guild, error) {
-	var guilds []models.Guild
-	stmt := `SELECT * FROM guilds`
+func (db Db) GetAllGuilds() ([]models.GuildOut, error) {
+	var guilds []models.GuildOut
+	stmt := `SELECT * FROM guilds_meta`
 	rows, err := db.DbConnection.Query(stmt)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var guild models.Guild
+		var guild models.GuildOut
 		err := rows.Scan(
+			&guild.GuildID,
 			&guild.IconHash,
 			&guild.BannerHash,
 			&guild.Name)

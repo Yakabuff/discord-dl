@@ -1,5 +1,33 @@
 <html>
+    <head>
+        <style>
+            table, th, td {
+            border: 1px solid;
+            }
+        </style>
+    </head>
+    <body>
     <h1>Channels</h1>
-    <!----Links to each guild-->
-    <li></li>
+    <!----Links to each channel-->
+    <div id = "guilds">
+
+        {{range .Channels}}
+        <table>
+            <tr>
+                <td>Channel ID</td>
+                <td>Channel Name</td>
+                <td>Channel topic</td>
+            </tr>
+            <tr>
+                <td><a href="/{{ .GuildID }}/{{  .ChannelID  }}">{{ .ChannelID }}</a></td>
+                <td>{{ .Name }}</td>
+                {{ if .Topic}}
+                <td>{{ .Topic }}</td>
+                {{end}}
+            </tr>
+        </table>
+        {{ end }}
+
+    </div>
+    </body>
 </html>
