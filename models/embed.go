@@ -2,6 +2,7 @@ package models
 
 type EmbedOut struct {
 	MessageId             string
+	EmbedDateRetrieved    string
 	EmbedUrl              string
 	EmbedTitle            string
 	EmbedDescription      string
@@ -23,6 +24,7 @@ type EmbedOut struct {
 
 type Embed struct {
 	MessageId          string
+	EmbedDateRetrieved string
 	EmbedUrl           string
 	EmbedTitle         string
 	EmbedDescription   string
@@ -40,6 +42,7 @@ type Embed struct {
 }
 
 func NewEmbed(MessageId string,
+	EmbedDateRetrieved string,
 	EmbedUrl string,
 	EmbedTitle string,
 	EmbedDescription string,
@@ -56,6 +59,7 @@ func NewEmbed(MessageId string,
 	EmbedField string) Embed {
 
 	e := Embed{MessageId: MessageId,
+		EmbedDateRetrieved: EmbedDateRetrieved,
 		EmbedUrl:           EmbedUrl,
 		EmbedTitle:         EmbedTitle,
 		EmbedDescription:   EmbedDescription,

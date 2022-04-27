@@ -45,10 +45,10 @@ func (db Db) InsertEdit(m models.Edit) error {
 
 func (db Db) InsertEmbed(m models.Embed) error {
 	stmt := `
-	INSERT INTO embeds (message_id, embed_url, embed_title, embed_description, embed_timestamp, embed_thumbnail_url, embed_thumbnail_hash, embed_image_url, embed_image_hash, embed_video_url, embed_video_hash, embed_footer, embed_author_name, embed_author_url, embed_field)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+	INSERT INTO embeds (message_id, embed_date_retrieved, embed_url, embed_title, embed_description, embed_timestamp, embed_thumbnail_url, embed_thumbnail_hash, embed_image_url, embed_image_hash, embed_video_url, embed_video_hash, embed_footer, embed_author_name, embed_author_url, embed_field)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 	`
-	_, err := db.DbConnection.Exec(stmt, m.MessageId, m.EmbedUrl, m.EmbedTitle, m.EmbedDescription, m.EmbedTimestamp, m.EmbedThumbnailUrl, m.EmbedThumbnailHash, m.EmbedImageUrl, m.EmbedImageHash, m.EmbedVideoUrl, m.EmbedVideoHash, m.EmbedFooter, m.EmbedAuthorName, m.EmbedAuthorUrl, m.EmbedField)
+	_, err := db.DbConnection.Exec(stmt, m.MessageId, m.EmbedDateRetrieved, m.EmbedUrl, m.EmbedTitle, m.EmbedDescription, m.EmbedTimestamp, m.EmbedThumbnailUrl, m.EmbedThumbnailHash, m.EmbedImageUrl, m.EmbedImageHash, m.EmbedVideoUrl, m.EmbedVideoHash, m.EmbedFooter, m.EmbedAuthorName, m.EmbedAuthorUrl, m.EmbedField)
 
 	if sqliteErr, ok := err.(sqlite3.Error); ok {
 		if sqliteErr.Code == 19 && sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {

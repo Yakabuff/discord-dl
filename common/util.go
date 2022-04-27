@@ -97,7 +97,7 @@ func DateToTime(date string) (time.Time, error) {
 //get hash of file via bytes  sha256.Sum256([]byte("hello world\n"))
 //write bytes into file with hash as name into specified path
 //return sha256 sum
-func DownloadFile(url string, channel_id string, path string) (string, error) {
+func DownloadFile(url string, channel_id string, path string, save bool) (string, error) {
 	// Get the data
 	resp, err := http.Get(url)
 	if err != nil {
@@ -120,6 +120,10 @@ func DownloadFile(url string, channel_id string, path string) (string, error) {
 	//hash byte array
 	sum := fmt.Sprintf("%x", sha256.Sum256(body))
 
+	if !save {
+		return sum, nil
+	}
+
 	//create file with hash as file name
 	newpath = filepath.Join(".", newpath, sum)
 	_, errExist := os.Stat(newpath)
@@ -130,7 +134,6 @@ func DownloadFile(url string, channel_id string, path string) (string, error) {
 	}
 	if errors.Is(errExist, os.ErrNotExist) {
 		//If file does not exist, download file and return sum
-		log.Println("File does not exists")
 		out, err := os.Create(newpath)
 		if err != nil {
 			return "", err

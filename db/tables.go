@@ -112,6 +112,7 @@ func createTable(db *sql.DB) {
 	//body  body1\nbody2\body3 etc.
 	createEmbeds := `CREATE TABLE embeds (
 		"message_id" TEXT NOT NULL,
+		"embed_date_retrieved" TEXT NOT NULL,
 		"embed_url" TEXT,
 		"embed_title" TEXT,
 		"embed_description" TEXT,  
@@ -127,6 +128,7 @@ func createTable(db *sql.DB) {
 		"embed_author_url" TEXT, 
 		"embed_field" TEXT,
 		UNIQUE(message_id, 
+			embed_date_retrieved,
 			embed_url, 
 			embed_title, 
 			embed_description,

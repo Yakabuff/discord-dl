@@ -172,7 +172,7 @@ func (a Archiver) IndexGuild(guild string) error {
 	var iconHash string
 	var bannerHash string
 	if g.ID != "" {
-		iconHash, err = common.DownloadFile(g.IconURL(), g.ID, a.Args.MediaLocation)
+		iconHash, err = common.DownloadFile(g.IconURL(), g.ID, a.Args.MediaLocation, true)
 		if err != nil {
 			log.Println(err)
 		}
@@ -188,7 +188,7 @@ func (a Archiver) IndexGuild(guild string) error {
 		}
 	}
 	if g.Banner != "" {
-		bannerHash, err := common.DownloadFile(g.BannerURL(), g.ID, a.Args.MediaLocation)
+		bannerHash, err := common.DownloadFile(g.BannerURL(), g.ID, a.Args.MediaLocation, true)
 		if err != nil {
 			log.Println(err)
 		}

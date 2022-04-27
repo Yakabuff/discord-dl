@@ -92,7 +92,7 @@ func (db Db) GetEdits(message_id string) (error, []models.Edit) {
 
 func (db Db) GetEmbeds(message_id string) (error, []models.EmbedOut) {
 	var embeds []models.EmbedOut
-	stmt := `SELECT * FROM embeds where message_id = $1`
+	stmt := `SELECT * FROM embeds where message_id = $1 ORDER BY embed_date_retrieved DESC LIMIT 1`
 	rows, err := db.DbConnection.Query(stmt, message_id)
 	if err != nil {
 		return err, nil
@@ -103,6 +103,7 @@ func (db Db) GetEmbeds(message_id string) (error, []models.EmbedOut) {
 		var embed models.EmbedOut
 		err := rows.Scan(
 			&embed.MessageId,
+			&embed.EmbedDateRetrieved,
 			&embed.EmbedUrl,
 			&embed.EmbedTitle,
 			&embed.EmbedDescription,

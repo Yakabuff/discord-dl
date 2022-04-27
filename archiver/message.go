@@ -2,8 +2,10 @@ package archiver
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/yakabuff/discord-dl/common"
@@ -53,6 +55,7 @@ func (a Archiver) InsertMessage(m *discordgo.Message, fastUpdate bool) error {
 			log.Println(errMsg)
 			return errMsg
 		} else {
+			log.Println("Fast update triggered")
 			//return fast update error
 			return models.FastUpdateError
 		}
@@ -78,6 +81,7 @@ func (a Archiver) InsertMessage(m *discordgo.Message, fastUpdate bool) error {
 		}
 	}
 
+	//TODO: If hash exists for embed, don't redownload. Sometimes, embed images change eg: github -> num stars goes up in image
 	//If it has embed, download embed
 	for _, i := range m.Embeds {
 		//If image != null, download image, add URL to embed, download
@@ -114,8 +118,10 @@ func (a Archiver) InsertMessage(m *discordgo.Message, fastUpdate bool) error {
 		if i.Footer != nil {
 			footerText = i.Footer.Text
 		}
-
-		embed := models.NewEmbed(m.ID, i.URL,
+		var dateRetrieved string = fmt.Sprintf("%d", time.Now().Unix())
+		embed := models.NewEmbed(m.ID,
+			dateRetrieved,
+			i.URL,
 			i.Title,
 			i.Description,
 			i.Timestamp,
@@ -131,34 +137,33 @@ func (a Archiver) InsertMessage(m *discordgo.Message, fastUpdate bool) error {
 			fields,
 		)
 
-		if a.Args.DownloadMedia == true {
-			//Download embed media
-			if i.Image != nil {
-				sum, err := common.DownloadFile(i.Image.URL, m.ChannelID, a.Args.MediaLocation)
-				if err != nil {
-					log.Println(err)
-				}
-
-				embed.EmbedImageHash = sum
+		//Download embed media
+		if i.Image != nil {
+			sum, err := common.DownloadFile(i.Image.URL, m.ChannelID, a.Args.MediaLocation, a.Args.DownloadMedia)
+			if err != nil {
+				log.Println(err)
 			}
 
-			if i.Thumbnail != nil {
-				sum, err := common.DownloadFile(i.Thumbnail.URL, m.ChannelID, a.Args.MediaLocation)
-				if err != nil {
-					log.Println(err)
-				}
-				embed.EmbedThumbnailHash = sum
-			}
-			//Download videos in embeds from discord ONLY.
-			if i.Video != nil && strings.HasPrefix(i.Video.URL, "https://cdn.discordapp.com") {
-				sum, err := common.DownloadFile(i.Video.URL, m.ChannelID, a.Args.MediaLocation)
-				if err != nil {
-					log.Println(err)
-				}
-
-				embed.EmbedVideoHash = sum
-			}
+			embed.EmbedImageHash = sum
 		}
+
+		if i.Thumbnail != nil {
+			sum, err := common.DownloadFile(i.Thumbnail.URL, m.ChannelID, a.Args.MediaLocation, a.Args.DownloadMedia)
+			if err != nil {
+				log.Println(err)
+			}
+			embed.EmbedThumbnailHash = sum
+		}
+		//Download videos in embeds from discord ONLY.
+		if i.Video != nil && strings.HasPrefix(i.Video.URL, "https://cdn.discordapp.com") {
+			sum, err := common.DownloadFile(i.Video.URL, m.ChannelID, a.Args.MediaLocation, a.Args.DownloadMedia)
+			if err != nil {
+				log.Println(err)
+			}
+
+			embed.EmbedVideoHash = sum
+		}
+
 		errEmbed := a.InsertEmbed(embed)
 		if errEmbed != nil {
 			log.Println(errEmbed)
@@ -169,15 +174,14 @@ func (a Archiver) InsertMessage(m *discordgo.Message, fastUpdate bool) error {
 	for _, i := range m.Attachments {
 		attachment := models.NewAttachment(i.ID, m.ID, i.Filename, i.URL, "")
 
-		if a.Args.DownloadMedia == true {
-			//Download embed media
-			hash, err := common.DownloadFile(i.URL, m.ChannelID, a.Args.MediaLocation)
-			if err != nil {
-				log.Println(err)
-			}
-
-			attachment.AttachmentHash = hash
+		//Download embed media
+		hash, err := common.DownloadFile(i.URL, m.ChannelID, a.Args.MediaLocation, a.Args.DownloadMedia)
+		if err != nil {
+			log.Println(err)
 		}
+
+		attachment.AttachmentHash = hash
+
 		errAttachment := a.InsertAttachment(attachment)
 		if errAttachment != nil {
 			return errAttachment

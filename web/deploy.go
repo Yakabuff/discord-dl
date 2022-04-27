@@ -1,6 +1,7 @@
 package web
 
 import (
+	"embed"
 	"html/template"
 	"log"
 	"net/http"
@@ -13,6 +14,11 @@ import (
 	"github.com/yakabuff/discord-dl/db"
 	"github.com/yakabuff/discord-dl/models"
 )
+
+//go:embed static/channel.html
+//go:embed static/channels.html
+//go:embed static/index.html
+var templates embed.FS
 
 type Web struct {
 	db            db.Db
@@ -46,15 +52,15 @@ func (web Web) Deploy(Db db.Db) {
 			r.Get("/{date}/{nav}", web.messageHandlerNav)
 		})
 
-		r.Get("/media/{channel}/{hash}", mediaHandler)
+		r.Get("/media/{channel}/{hash}", web.mediaHandler)
 		http.ListenAndServe(":"+strconv.Itoa(web.port), r)
 	}(Db)
 }
 
-func mediaHandler(w http.ResponseWriter, r *http.Request) {
+func (web Web) mediaHandler(w http.ResponseWriter, r *http.Request) {
 	channelParam := strings.TrimSpace(chi.URLParam(r, "channel"))
 	hashParam := strings.TrimSpace(chi.URLParam(r, "hash"))
-	path := filepath.FromSlash("media/" + channelParam + "/" + hashParam)
+	path := filepath.FromSlash(web.mediaLocation + "/" + channelParam + "/" + hashParam)
 	http.ServeFile(w, r, path)
 }
 
@@ -68,7 +74,7 @@ func (web Web) guildHandler(w http.ResponseWriter, r *http.Request) {
 	web.addGuildMetadataResourceLink(guilds)
 
 	g := models.Guilds{Guilds: guilds}
-	tmpl, err := template.ParseFiles("static/index.html")
+	tmpl, err := template.ParseFS(templates, "static/index.html")
 	if err != nil {
 		log.Println(err)
 	}
@@ -82,7 +88,7 @@ func (web Web) channelHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 	c := models.Channels{Channels: channels}
-	tmpl, err := template.ParseFiles("static/channels.html")
+	tmpl, err := template.ParseFS(templates, "static/channels.html")
 	if err != nil {
 		log.Println(err)
 	}
@@ -96,7 +102,7 @@ func (web Web) messageHandler(w http.ResponseWriter, r *http.Request) {
 
 	date_unix := int(time.Now().Unix())
 
-	tmpl, err := template.ParseFiles("static/channel.html")
+	tmpl, err := template.ParseFS(templates, "static/channel.html")
 	if err != nil {
 		log.Println(err)
 	}
@@ -127,7 +133,7 @@ func (web Web) messageHandlerDate(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		date_unix = int(time.Now().Unix())
 	}
-	tmpl, err := template.ParseFiles("static/channel.html")
+	tmpl, err := template.ParseFS(templates, "static/channel.html")
 	if err != nil {
 		log.Println(err)
 	}
@@ -157,7 +163,7 @@ func (web Web) messageHandlerNav(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		date_unix = int(time.Now().Unix())
 	}
-	tmpl, err := template.ParseFiles("static/channel.html")
+	tmpl, err := template.ParseFS(templates, "static/channel.html")
 	if err != nil {
 		log.Println(err)
 	}
