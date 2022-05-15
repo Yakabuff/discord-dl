@@ -1,23 +1,29 @@
 package models
 
-type Args struct {
+//Job args
+type JobArgs struct {
+	Mode       Mode
+	Before     string
+	After      string
+	FastUpdate bool
+	Guild      string
+	Channel    string
+}
+
+//Archiver system args
+type ArchiverArgs struct {
 	Mode                Mode
 	DownloadMedia       bool
-	Before              string
-	After               string
-	FastUpdate          bool
 	Token               string
 	Output              string
-	Guild               string
-	Channel             string
-	Listen              bool
-	Deploy              bool
 	MediaLocation       string
 	DeployPort          int
-	Progress            bool
-	BlacklistedChannels []string
+	Listen              bool
+	Deploy              bool
 	Input               string
+	BlacklistedChannels []string
 }
+
 type Mode int
 
 const (
@@ -26,4 +32,5 @@ const (
 	GUILD
 	CHANNEL
 	INVALID
+	EXPORT
 )

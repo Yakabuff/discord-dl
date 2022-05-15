@@ -1,7 +1,7 @@
 
 ![logo](ddl.png)
 
-discord-dl is a Discord Bot that can be used to archive discord channels in realtime.  
+Discord-dl is an utility that can be used to archive Discord channels and guilds.  
 
 It's safe to say that forums, the medium that has once acted as the internet's primary knowledge center, are dead.  Communities are moving en-masse to walled off platforms like Discord that cannot be indexed by search engines and are completely inaccesible by those who are not registered users.  As a result, it is imperative to have a way of preserving these communities so valuable content can remain openly accessible. 
 
@@ -31,17 +31,14 @@ Note: While I recognize that there is no alternative to selfbots especially when
 
 - Archives messages, edits, embeds, threads and attachments
 - Storing message history in an SQLite database
-- Listen for messages to archive in real time
+- Listens for messages to archive in real time
 - Simple web API/frontend to display and query messages
 
 ## To-do
 
 - Ability to 'rebuild' the server in the event of deletion
 - Job queue for improved concurrency and the ability to pause/stop jobs/see progress
-- More supported databases (MariaDB, Postgres)
-- Cloud storage support (S3, B2, GCS)
-- Way for people to contribute chat history to the database
-- More robust frontend
+- Cloud object storage support
 
 ## Instructions
 

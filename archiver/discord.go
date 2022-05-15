@@ -56,7 +56,7 @@ func (a Archiver) messageListen(dg *discordgo.Session, m *discordgo.MessageCreat
 				return
 			}
 			m.GuildID = guildID
-			err = a.InsertMessage(m, false)
+			err = a.InsertMessage(m, false, a.Args.DownloadMedia)
 			if err != nil {
 				log.Println("Could not insert message " + m.ID + " from " + m.ChannelID)
 			}
@@ -68,7 +68,7 @@ func (a Archiver) messageListen(dg *discordgo.Session, m *discordgo.MessageCreat
 			return
 		}
 		m.GuildID = guildID
-		err = a.InsertMessage(m, false)
+		err = a.InsertMessage(m, false, a.Args.DownloadMedia)
 		if err != nil {
 			log.Println("Could not insert message " + m.ID + " from " + m.ChannelID)
 		}

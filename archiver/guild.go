@@ -7,7 +7,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-func (a Archiver) GuildDownload(guildID string) error {
+func (a Archiver) GuildDownload(guildID string, fastUpdate bool, after string, before string) error {
 	//get all channels from guild into array
 	channels, err := a.Dg.GuildChannels(guildID)
 	if err != nil {
@@ -19,7 +19,7 @@ func (a Archiver) GuildDownload(guildID string) error {
 		if c.Type == discordgo.ChannelTypeGuildText && !contains(a.Args.BlacklistedChannels, c.ID) {
 
 			log.Printf("Archiving guild: %s channel: %s", guildID, c.ID)
-			err := a.ChannelDownload(c.ID)
+			// err := a.ChannelDownload(c.ID, fastUpdate, after, before)
 			log.Println(err)
 			if err != nil {
 				return err
@@ -28,6 +28,19 @@ func (a Archiver) GuildDownload(guildID string) error {
 	}
 
 	return nil
+}
+
+func (a Archiver) GetChannelsGuild(guildID string) ([]string, error) {
+	channels, err := a.Dg.GuildChannels(guildID)
+	if err != nil {
+		log.Println("Could not find guild")
+		return nil, err
+	}
+	res := make([]string, len(channels))
+	for _, val := range channels {
+		res = append(res, val.ID)
+	}
+	return res, nil
 }
 
 func contains(channels []string, id string) bool {

@@ -13,7 +13,7 @@ import (
 	"github.com/yakabuff/discord-dl/models"
 )
 
-func (a Archiver) InsertMessage(m *discordgo.Message, fastUpdate bool) error {
+func (a Archiver) InsertMessage(m *discordgo.Message, fastUpdate bool, downloadMedia bool) error {
 	//Try adding message to DB
 	//fast update, unique constraint error -> log and skip message(return fast_update error)
 	//fast update, non unique constraint error -> return error
@@ -139,7 +139,7 @@ func (a Archiver) InsertMessage(m *discordgo.Message, fastUpdate bool) error {
 
 		//Download embed media
 		if i.Image != nil {
-			sum, err := common.DownloadFile(i.Image.URL, m.ChannelID, a.Args.MediaLocation, a.Args.DownloadMedia)
+			sum, err := common.DownloadFile(i.Image.URL, m.ChannelID, a.Args.MediaLocation, downloadMedia)
 			if err != nil {
 				log.Println(err)
 			}
@@ -148,7 +148,7 @@ func (a Archiver) InsertMessage(m *discordgo.Message, fastUpdate bool) error {
 		}
 
 		if i.Thumbnail != nil {
-			sum, err := common.DownloadFile(i.Thumbnail.URL, m.ChannelID, a.Args.MediaLocation, a.Args.DownloadMedia)
+			sum, err := common.DownloadFile(i.Thumbnail.URL, m.ChannelID, a.Args.MediaLocation, downloadMedia)
 			if err != nil {
 				log.Println(err)
 			}
@@ -156,7 +156,7 @@ func (a Archiver) InsertMessage(m *discordgo.Message, fastUpdate bool) error {
 		}
 		//Download videos in embeds from discord ONLY.
 		if i.Video != nil && strings.HasPrefix(i.Video.URL, "https://cdn.discordapp.com") {
-			sum, err := common.DownloadFile(i.Video.URL, m.ChannelID, a.Args.MediaLocation, a.Args.DownloadMedia)
+			sum, err := common.DownloadFile(i.Video.URL, m.ChannelID, a.Args.MediaLocation, downloadMedia)
 			if err != nil {
 				log.Println(err)
 			}
@@ -175,7 +175,7 @@ func (a Archiver) InsertMessage(m *discordgo.Message, fastUpdate bool) error {
 		attachment := models.NewAttachment(i.ID, m.ID, i.Filename, i.URL, "")
 
 		//Download embed media
-		hash, err := common.DownloadFile(i.URL, m.ChannelID, a.Args.MediaLocation, a.Args.DownloadMedia)
+		hash, err := common.DownloadFile(i.URL, m.ChannelID, a.Args.MediaLocation, downloadMedia)
 		if err != nil {
 			log.Println(err)
 		}

@@ -12,25 +12,29 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/yakabuff/discord-dl/db"
+	"github.com/yakabuff/discord-dl/job"
 	"github.com/yakabuff/discord-dl/models"
 )
 
 //go:embed static/channel.html
 //go:embed static/channels.html
 //go:embed static/index.html
+//go:embed static/job.html
 var templates embed.FS
 
 type Web struct {
 	db            db.Db
 	port          int
 	mediaLocation string
+	JobQueue      *job.JobQueue
 }
 
-func NewWeb(db db.Db, port int, mediaLocation string) Web {
+func NewWeb(db db.Db, port int, mediaLocation string, jobQueue *job.JobQueue) Web {
 	web := Web{}
 	web.db = db
 	web.port = port
 	web.mediaLocation = mediaLocation
+	web.JobQueue = jobQueue
 	return web
 }
 
@@ -50,6 +54,16 @@ func (web Web) Deploy(Db db.Db) {
 			r.Get("/{date}", web.messageHandlerDate)
 			//fetch next 100 messages ( date + 1) or fetch previous 100 messages ( date -1)
 			r.Get("/{date}/{nav}", web.messageHandlerNav)
+		})
+
+		r.Route("/job", func(r chi.Router) {
+			r.Get("/", web.ShowJobPanel)
+			r.Get("/all", web.GetAllJobs)
+			r.Get("/{jobID}", web.GetJobByID)
+			// r.Get("/{snowflake}", web.GetJobsBySnowflake)
+			r.Post("/submit", web.SubmitJob)
+			r.Get("/progress/{jobID}", web.GetJobProgress)
+			r.Post("/cancel/{jobID}", web.CancelJob)
 		})
 
 		r.Get("/media/{channel}/{hash}", web.mediaHandler)

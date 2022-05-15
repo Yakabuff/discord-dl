@@ -15,6 +15,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/bwmarrin/discordgo"
 )
 
 const DiscordEpoch = 1420070400000
@@ -89,6 +91,17 @@ func DateToTime(date string) (time.Time, error) {
 	t := time.Date(int(year), time.Month(month), int(day), int(hour), int(minute), int(second), 0, loc)
 
 	return t, err2
+}
+
+func SnowflakeToUnixTime(id string) (int64, error) {
+	// i, err := strconv.ParseInt(id, 10, 64)
+	// if err != nil {
+	// 	return -1, err
+	// }
+
+	i, _ := discordgo.SnowflakeTimestamp(id)
+	timestamp := i.Unix()
+	return timestamp, nil
 }
 
 //if embed or attachment

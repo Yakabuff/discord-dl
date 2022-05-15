@@ -2,36 +2,37 @@ package archiver
 
 import (
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"os"
-	"os/signal"
 	"strings"
-	"syscall"
+	"sync"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/yakabuff/discord-dl/db"
+	"github.com/yakabuff/discord-dl/job"
 	"github.com/yakabuff/discord-dl/models"
 	"github.com/yakabuff/discord-dl/web"
 )
 
 type Archiver struct {
-	Db   db.Db
-	Args models.Args
-	Dg   *discordgo.Session
-	Web  web.Web
+	Db    db.Db
+	Args  models.ArchiverArgs
+	Dg    *discordgo.Session
+	Web   web.Web
+	Queue job.JobQueue
+	Wg    sync.WaitGroup
 }
 
-func (a Archiver) ParseCliArgs() error {
-	if a.Args.Mode == models.INPUT {
-		fmt.Println("Selected input mode")
-		err := a.parseConfig(a.Args.Input)
-		if err != nil {
-			return err
-		}
-	}
+func (a Archiver) ParseArgs() error {
+	// if a.Args.Mode == models.INPUT {
+	// 	fmt.Println("Selected input mode")
+	// 	err := a.parseConfig(a.Args.Input)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
 
 	//Either listening or web deploy
 	if a.Args.Listen == true && strings.HasPrefix(a.Args.Token, "Bot") {
@@ -40,40 +41,11 @@ func (a Archiver) ParseCliArgs() error {
 	}
 	if a.Args.Deploy == true {
 		log.Println("Starting webview...")
-		a.Web = web.NewWeb(a.Db, a.Args.DeployPort, a.Args.MediaLocation)
+
+		a.Web = web.NewWeb(a.Db, a.Args.DeployPort, a.Args.MediaLocation, &a.Queue)
 		a.Web.Deploy(a.Db)
 	}
 
-	if a.Args.Mode != models.NONE {
-		switch a.Args.Mode {
-		case models.GUILD:
-			fmt.Println("Archiving guild")
-			err := a.IndexGuild(a.Args.Guild)
-			if err != nil {
-				return err
-			}
-			err = a.GuildDownload(a.Args.Guild)
-			if err != nil {
-				return err
-			}
-		case models.CHANNEL:
-			fmt.Println("Selected channel mode")
-			err := a.IndexChannel(a.Args.Channel)
-			if err != nil {
-				return err
-			}
-			err = a.ChannelDownload(a.Args.Channel)
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		//add slash command listener
-		fmt.Println("Bot is now running.  Press CTRL-C to exit.")
-		sc := make(chan os.Signal, 1)
-		signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
-		<-sc
-	}
 	return nil
 }
 
@@ -86,27 +58,22 @@ func (a Archiver) parseConfig(fileName string) error {
 	defer file.Close()
 	//parse each element of json as an args type
 	decoder := json.NewDecoder(file)
-	config := models.Args{}
+	config := models.ArchiverArgs{}
 	err = decoder.Decode(&config)
 	if err != nil {
 		return err
 	}
 	a.Args = config
-	mode := checkFlagMode("", config.Guild, config.Channel)
-	if mode == models.INVALID {
-		return errors.New("Invalid mode")
-	}
-	a.Args.Mode = mode
 	return nil
 }
 
 func checkFlagMode(input string, guild string, channel string) models.Mode {
 	var count int
 	var mode models.Mode
-	if input != "" {
-		count++
-		mode = models.INPUT
-	}
+	// if input != "" {
+	// 	count++
+	// 	mode = models.INPUT
+	// }
 	if guild != "" {
 		count++
 		mode = models.GUILD
@@ -124,8 +91,8 @@ func checkFlagMode(input string, guild string, channel string) models.Mode {
 	}
 }
 
-func (a Archiver) InitCli() models.Args {
-	progress := flag.Bool("progress", false, "Displays progress of task. Enabling this will output verbose logging")
+func (a Archiver) InitCli() (models.JobArgs, models.ArchiverArgs) {
+	// progress := flag.Bool("progress", false, "Displays progress of task. Enabling this will output verbose logging")
 	before := flag.String("before", "", "Retrieves all messages before this date or message id")
 	after := flag.String("after", "", "Retrieves all messages after this date or message id")
 	fastUpdate := flag.Bool("fast-update", false, "Retrieves all message after the last downloaded message")
@@ -149,23 +116,27 @@ func (a Archiver) InitCli() models.Args {
 		os.Exit(1)
 	}
 
-	args := models.Args{
-		Progress:            *progress,
+	job := models.JobArgs{
+		Mode:       mode,
+		Before:     *before,
+		After:      *after,
+		FastUpdate: *fastUpdate,
+		Guild:      *guild,
+		Channel:    *channel,
+	}
+
+	args := models.ArchiverArgs{
+		Mode:                mode,
 		DownloadMedia:       *downloadMedia,
 		MediaLocation:       *mediaLocation,
-		Before:              *before,
-		After:               *after,
-		FastUpdate:          *fastUpdate,
 		Token:               *token,
 		Output:              *output,
 		Input:               *input,
-		Guild:               *guild,
-		Channel:             *channel,
 		Listen:              *listen,
 		Deploy:              *deploy,
 		DeployPort:          *deployPort,
 		BlacklistedChannels: strings.Split(*blacklistedChannels, " "),
-		Mode:                mode}
+	}
 
 	if *input != "" && len(os.Args) > 3 {
 		fmt.Fprintln(os.Stderr, "Option --i cannot be used in conjunction with other flags")
@@ -194,5 +165,5 @@ func (a Archiver) InitCli() models.Args {
 		}
 	}
 
-	return args
+	return job, args
 }

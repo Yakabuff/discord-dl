@@ -1,0 +1,88 @@
+
+<html>
+    <head>
+        <style>
+            label {
+                margin: 5px;
+            }
+            input{
+                margin: 5px;
+            }
+            label, input {
+                display: inline;
+            }
+            table, th, td {
+            border: 1px solid;
+            }
+
+        </style>
+    </head>
+    <h1>Submit Jobs</h1>
+    <body>
+        <div id = "jobform"><table>
+            <form action="/job/submit" method="post">
+                <label for="mode">Mode:</label>
+                <select name="Mode" id="modes">
+                  <option value="3">Channel</option>
+                  <option value="2">Guild</option>
+                </select>
+
+                <label for="snowflake">Snowflake:</label>
+                <input type="text" id="snowflake" name="Snowflake">
+
+                <label for="before">Before date (YYYY-MM-DD):</label>
+                <input type="text" id="before" name="Before">
+
+                <label for="after">After date (YYYY-MM-DD):</label>
+                <input type="text" id="after" name="After">
+
+                <label for="fastupdate">Fast-Update:</label>
+                <select name="FastUpdate" id="fastupdate">
+                  <option value="true">True</option>
+                  <option value="false">False</option>
+                </select>
+                <input type="submit" value="submit">
+            </form>
+        </div>
+        <hr>
+        <h1>Job Queue</h1>
+        {{block "jobs" .}}
+        <div id = "joblist">
+            <table>
+                <tr>
+                    <td>ID</td>
+                    <td>Snowflake</td>
+                    <td>Progress</td>
+                    <td>Status</td>
+                    <td>Error</td>
+                </tr>
+                {{range .Jobs}}
+                    <tr>
+                        <td><button onclick="cancel()">Cancel</button></td>
+                        <td>{{.Id}}</td>
+                        <td>{{.Snowflake}}</td>
+                        <td>{{.Progress}}%</td>
+                        <td>{{.Status}}</td>
+                        <td>{{.Error}}</td>
+                    </tr>
+                {{end}}
+            </table>
+        </div>
+        {{end}}
+    </body>
+
+    <script>
+        function cancel(){
+            let xhr = new XMLHttpRequest();
+            xhr.open("POST", "/"+cancel+"/"+jobid, true);
+            try { xhr.send(); } catch (err) { 
+                console.log(err)
+                return;
+            }
+        }
+
+        function submit(){
+
+        }
+    </script>
+</html>
