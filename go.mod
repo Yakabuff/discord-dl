@@ -3,6 +3,7 @@ module github.com/yakabuff/discord-dl
 go 1.16
 
 require (
+	github.com/BurntSushi/toml v1.1.0 // indirect
 	github.com/bwmarrin/discordgo v0.24.0 // indirect
 	github.com/go-chi/chi/v5 v5.0.7 // indirect
 	github.com/google/uuid v1.3.0 // indirect

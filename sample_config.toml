@@ -1,0 +1,8 @@
+DownloadMedia = false
+Token = ""
+Output = ""
+MediaLocation = ""
+DeployPort = 8080
+Listen = false
+Deploy = true
+BlacklistedChannels = []

@@ -1,7 +1,6 @@
 package archiver
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -9,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/BurntSushi/toml"
 	"github.com/bwmarrin/discordgo"
 	"github.com/yakabuff/discord-dl/db"
 	"github.com/yakabuff/discord-dl/job"
@@ -26,13 +26,6 @@ type Archiver struct {
 }
 
 func (a Archiver) ParseArgs() error {
-	// if a.Args.Mode == models.INPUT {
-	// 	fmt.Println("Selected input mode")
-	// 	err := a.parseConfig(a.Args.Input)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
 
 	//Either listening or web deploy
 	if a.Args.Listen == true && strings.HasPrefix(a.Args.Token, "Bot") {
@@ -49,21 +42,14 @@ func (a Archiver) ParseArgs() error {
 	return nil
 }
 
-func (a Archiver) parseConfig(fileName string) error {
-	//read file
-	file, err := os.Open(fileName)
+func (a Archiver) ParseConfigFile(fileName string, args *models.ArchiverArgs) error {
+
+	md, err := toml.DecodeFile(fileName, &args)
+
 	if err != nil {
 		return err
 	}
-	defer file.Close()
-	//parse each element of json as an args type
-	decoder := json.NewDecoder(file)
-	config := models.ArchiverArgs{}
-	err = decoder.Decode(&config)
-	if err != nil {
-		return err
-	}
-	a.Args = config
+	log.Println(md.Undecoded())
 	return nil
 }
 
@@ -126,7 +112,6 @@ func (a Archiver) InitCli() (models.JobArgs, models.ArchiverArgs) {
 	}
 
 	args := models.ArchiverArgs{
-		Mode:                mode,
 		DownloadMedia:       *downloadMedia,
 		MediaLocation:       *mediaLocation,
 		Token:               *token,
@@ -138,10 +123,10 @@ func (a Archiver) InitCli() (models.JobArgs, models.ArchiverArgs) {
 		BlacklistedChannels: strings.Split(*blacklistedChannels, " "),
 	}
 
-	if *input != "" && len(os.Args) > 3 {
-		fmt.Fprintln(os.Stderr, "Option --i cannot be used in conjunction with other flags")
-		os.Exit(1)
-	}
+	// if *input != "" && len(os.Args) > 3 {
+	// 	fmt.Fprintln(os.Stderr, "Option --i cannot be used in conjunction with other flags")
+	// 	os.Exit(1)
+	// }
 
 	if *guild != "" && *channel != "" {
 		fmt.Fprintln(os.Stderr, "Cannot use --guild and --channel together")

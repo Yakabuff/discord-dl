@@ -20,8 +20,9 @@
     <h1>Submit Jobs</h1>
     <body>
         <div id = "jobform"><table>
-            <form action="/job/submit" method="post">
-                <label for="mode">Mode:</label>
+            <form action="/job/submit" method="POST">
+                
+                <label for="modes">Mode:</label>
                 <select name="Mode" id="modes">
                   <option value="3">Channel</option>
                   <option value="2">Guild</option>
@@ -38,8 +39,8 @@
 
                 <label for="fastupdate">Fast-Update:</label>
                 <select name="FastUpdate" id="fastupdate">
-                  <option value="true">True</option>
-                  <option value="false">False</option>
+                  <option value=true>True</option>
+                  <option value=false>False</option>
                 </select>
                 <input type="submit" value="submit">
             </form>
@@ -50,6 +51,7 @@
         <div id = "joblist">
             <table>
                 <tr>
+                    <td>Cancel</td>
                     <td>ID</td>
                     <td>Snowflake</td>
                     <td>Progress</td>

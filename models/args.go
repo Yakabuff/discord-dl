@@ -12,7 +12,6 @@ type JobArgs struct {
 
 //Archiver system args
 type ArchiverArgs struct {
-	Mode                Mode
 	DownloadMedia       bool
 	Token               string
 	Output              string

@@ -211,7 +211,7 @@ func (a *JobQueue) ExecJobArgs(j models.JobArgs, job *Job) {
 			}
 
 			for _, val := range guilds {
-				ja := models.JobArgs{models.GUILD, job.Args.Before, job.Args.After, job.Args.FastUpdate, "", val}
+				ja := models.JobArgs{Mode: models.GUILD, Before: job.Args.Before, After: job.Args.After, FastUpdate: job.Args.FastUpdate, Guild: "", Channel: val}
 				jobtmp := NewJob(ja)
 				a.Enqueue(jobtmp)
 			}
@@ -242,6 +242,9 @@ func (a *JobQueue) ExecJobArgs(j models.JobArgs, job *Job) {
 			if err != nil {
 				job.Error = err
 				job.Status = ERROR
+				if errors.Is(err, models.FastUpdateError) {
+					job.Status = FINISHED
+				}
 			} else {
 				job.Status = FINISHED
 			}
@@ -250,6 +253,8 @@ func (a *JobQueue) ExecJobArgs(j models.JobArgs, job *Job) {
 }
 
 func (a *JobQueue) CancelJob(id string) error {
+	a.Lock()
+	defer a.Unlock()
 	if _, ok := a.Jobs[id]; ok {
 		a.Jobs[id].Status = CANCELLED
 	} else {

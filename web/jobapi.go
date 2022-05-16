@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/yakabuff/discord-dl/job"
 	"github.com/yakabuff/discord-dl/models"
 )
 
@@ -28,24 +29,46 @@ func (web Web) GetJobByID(w http.ResponseWriter, r *http.Request) {
 // }
 
 func (web Web) SubmitJob(w http.ResponseWriter, r *http.Request) {
+	var err error
 	var j models.JobArgs
-	json.NewDecoder(r.Body).Decode(&j)
-	// job := job.NewJob(j)
-	b, err := io.ReadAll(r.Body)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	fmt.Println(string(b))
-	// if job.Args.Mode != models.CHANNEL && job.Args.Mode != models.GUILD {
-	// 	respondWithError(w, http.StatusInternalServerError, "Invalid mode")
-	// 	return
-	// }
-	// err := web.JobQueue.Enqueue(job)
 
-	// if err != nil {
-	// 	respondWithError(w, http.StatusInternalServerError, "Job could not be submitted. Queue is full")
-	// }
-	// respondwithJSON(w, http.StatusCreated, map[string]string{"message": "job successfully created"})
+	err = r.ParseForm()
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Job could not be submitted. Could not parse field")
+		return
+	}
+
+	j.After = r.FormValue("After")
+	j.Before = r.FormValue("Before")
+	fu, err := strconv.ParseBool(r.FormValue("FastUpdate"))
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Job could not be submitted. Invalid fast update field")
+		return
+	}
+	j.FastUpdate = fu
+	m := r.FormValue("Mode")
+	switch m {
+	case fmt.Sprintf("%d", models.GUILD):
+		j.Guild = r.FormValue("Snowflake")
+		j.Mode = models.GUILD
+	case fmt.Sprintf("%d", models.CHANNEL):
+		j.Channel = r.FormValue("Snowflake")
+		j.Mode = models.CHANNEL
+	}
+
+	if j.Mode != models.CHANNEL && j.Mode != models.GUILD {
+		respondWithError(w, http.StatusInternalServerError, "Invalid mode")
+		return
+	}
+
+	job := job.NewJob(j)
+	err = web.JobQueue.Enqueue(job)
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Job could not be submitted. Queue is full")
+		return
+	}
+	respondwithJSON(w, http.StatusCreated, map[string]string{"message": "Job successfully created"})
 
 }
 
@@ -84,7 +107,6 @@ func (web Web) GetJobProgress(w http.ResponseWriter, r *http.Request) {
 }
 
 func (web Web) ShowJobPanel(w http.ResponseWriter, r *http.Request) {
-	log.Println("hi")
 	jobs := web.JobQueue.GetAllJobs()
 
 	tmpl, err := template.ParseFS(templates, "static/job.html")

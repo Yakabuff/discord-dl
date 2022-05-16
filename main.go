@@ -17,7 +17,17 @@ func main() {
 
 	var archiver = archiver.Archiver{}
 	jobArgs, args := archiver.InitCli()
+
+	//Parse config file if specified
+	if args.Input != "" {
+		err := archiver.ParseConfigFile(args.Input, &args)
+		if err != nil {
+			panic(err.Error())
+		}
+	}
+
 	archiver.Args = args
+
 	db, err := db.Init_db(archiver.Args.Output)
 	if err != nil {
 		panic(err.Error())
@@ -32,10 +42,12 @@ func main() {
 	archiver.Db = *db
 	archiver.Queue = job.NewJobQueue(&archiver)
 
+	//Listener and webview
 	err = archiver.ParseArgs()
 	if err != nil {
 		panic(err.Error())
 	}
+
 	if jobArgs.Mode != models.NONE {
 		//Wait until job is complete and then exit
 
@@ -61,7 +73,7 @@ func main() {
 
 	} else {
 		//If no job, run forever and wait for jobs
-		fmt.Println("Bot is now running.  Press CTRL-C to exit.")
+		fmt.Println("discord-dl is now running.  Press CTRL-C to exit.")
 		sc := make(chan os.Signal, 1)
 		signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 		<-sc
