@@ -2,11 +2,14 @@ package job
 
 import (
 	"errors"
-	"fmt"
-	"log"
+	"io/ioutil"
 	"sync"
 
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
+	"github.com/vbauerster/mpb/v7"
+	"github.com/vbauerster/mpb/v7/decor"
+	"github.com/yakabuff/discord-dl/common"
 	"github.com/yakabuff/discord-dl/models"
 )
 
@@ -19,6 +22,8 @@ type Archiver interface {
 type Jobs struct {
 	Jobs []JobOut
 }
+
+var log *logrus.Logger
 
 type JobOut struct {
 	Id        string
@@ -40,15 +45,11 @@ type JobQueue struct {
 	*sync.Mutex
 	Queue    map[string]*Worker
 	MaxSize  int
-	Wg       sync.WaitGroup
+	Wg       *sync.WaitGroup
 	Archiver Archiver
 	Jobs     map[string]*Job
+	Progress *mpb.Progress
 }
-
-// type JobRecord struct {
-// 	*sync.Mutex
-// 	Jobs map[string]*Job
-// }
 
 type Worker struct {
 	Channel  *chan *Job
@@ -61,6 +62,7 @@ type JobState struct {
 	Progress *int
 	Error    *error
 	Status   *Status
+	Bar      *mpb.Bar
 }
 
 type Status int
@@ -80,35 +82,41 @@ func NewJob(args models.JobArgs) Job {
 	case models.CHANNEL:
 		snowflake = args.Channel
 	case models.GUILD:
-		snowflake = args.Channel
+		snowflake = args.Guild
 	}
-
 	job := Job{Id: id, Args: args, Snowflake: snowflake, Status: PENDING}
 	return job
 }
 
-func NewJobQueue(a Archiver) JobQueue {
+func NewJobQueue(a Archiver, logger bool) JobQueue {
+	initLogger(logger)
 	m := sync.Mutex{}
 	q := make(map[string]*Worker)
 	jr := make(map[string]*Job)
+	w := &sync.WaitGroup{}
+	pg := mpb.New(mpb.WithWaitGroup(w))
 	return JobQueue{
 		&m,
 		q,
 		60,
-		sync.WaitGroup{},
+		&sync.WaitGroup{},
 		a,
 		jr,
+		pg,
 	}
 }
 
-// func NewJobRecord() JobRecord {
-// 	m := sync.Mutex{}
-// 	q := make(map[string]*Job)
-// 	return JobRecord{
-// 		&m,
-// 		q,
-// 	}
-// }
+func initLogger(logger bool) {
+	if logger {
+		l, err := common.NewErrLogger()
+		if err != nil {
+			logrus.New().Fatal(err)
+		}
+		log = l
+	} else {
+		logrus.SetOutput(ioutil.Discard)
+	}
+}
 
 func (a *JobQueue) AddJobRecord(job *Job) {
 
@@ -122,35 +130,32 @@ func (a *JobQueue) Enqueue(job Job) error {
 	defer a.Unlock()
 
 	if _, ok := a.Queue[job.Snowflake]; ok {
-		log.Println("Worker already exists")
 		//If group exists, add job to preexisting worker
 		var w *chan *Job = a.Queue[job.Snowflake].Channel
 		select {
 		case *w <- &job:
-			log.Println("Worker already exists, job added succesfully")
+			log.Infof("Job ID %s added for %s. Task commencing", job.Id, job.Snowflake)
 			a.AddJobRecord(&job)
 		default:
-			log.Println("Channel is full. Job was not added")
+			log.Warning("Channel is full. Job was not added")
 			return errors.New("channel is full. Job was not added")
 		}
 
 	} else {
 		c := make(chan *Job, 100)
 		a.Queue[job.Snowflake] = &Worker{Channel: &c, Category: job.Snowflake}
-		// log.Println("State of map before adding to a supposedly non existent key")
-		// log.Println(a.Queue.Queue)
 
 		var w *chan *Job = a.Queue[job.Snowflake].Channel
 		select {
 		case *w <- &job:
 			//Startup a worker and start processing jobs
 			a.Wg.Add(1)
-			log.Printf("Job ID %s added for newly created worker. Task commencing", job.Id)
+			log.Infof("Job ID %s added for %s. Task commencing", job.Id, job.Snowflake)
 			a.AddJobRecord(&job)
 			go a.StartWorker(a.Queue[job.Snowflake])
-			// time.Sleep(10 * time.Second)
+
 		default:
-			log.Println("Channel is full. Job was not added")
+			log.Infof("Worker %s is full. Job was not added", a.Queue[job.Snowflake].Category)
 			return errors.New("channel is full. Job was not added")
 		}
 
@@ -159,22 +164,17 @@ func (a *JobQueue) Enqueue(job Job) error {
 }
 
 func (a *JobQueue) StartWorker(w *Worker) {
-	log.Println("executing worker")
 	for {
 		select {
 		case task := <-*w.Channel:
 			w.CurrJob = task
-			// if task != nil {
-			// 	//Execute job struct
-			// 	log.Println("executing job")
-			// }
 			task.Status = RUNNING
 			w.Category = task.Snowflake
-			log.Printf("executing job %s %s", w.Category, task.Id)
+			log.Infof("Executing job %s %s", w.Category, task.Id)
 			a.ExecJobArgs(task.Args, task)
-			log.Printf("Finished executing job %s %s", w.Category, task.Id)
+			log.Infof("Finished executing job %s %s", w.Category, task.Id)
 		default:
-			log.Println("Last job processed in " + w.Category)
+			log.Info("Last job processed in " + w.Category)
 			delete(a.Queue, w.Category)
 			a.Wg.Done()
 			return
@@ -183,11 +183,10 @@ func (a *JobQueue) StartWorker(w *Worker) {
 }
 
 func (a *JobQueue) ExecJobArgs(j models.JobArgs, job *Job) {
-	// var err error
+
 	if j.Mode != models.NONE {
 		switch j.Mode {
 		case models.GUILD:
-			fmt.Println("Archiving guild")
 			// call function in archiver that returns list of channels in guild
 			// index guild metadata
 			// queue channels from list
@@ -196,6 +195,7 @@ func (a *JobQueue) ExecJobArgs(j models.JobArgs, job *Job) {
 			if err != nil {
 				job.Error = err
 				job.Status = ERROR
+				log.Error(err)
 				return
 			} else {
 				job.Status = FINISHED
@@ -205,28 +205,30 @@ func (a *JobQueue) ExecJobArgs(j models.JobArgs, job *Job) {
 			if err != nil {
 				job.Error = err
 				job.Status = ERROR
+				log.Error(err)
 				return
 			} else {
 				job.Status = FINISHED
 			}
 
 			for _, val := range guilds {
-				ja := models.JobArgs{Mode: models.GUILD, Before: job.Args.Before, After: job.Args.After, FastUpdate: job.Args.FastUpdate, Guild: "", Channel: val}
+				ja := models.JobArgs{Mode: models.CHANNEL, Before: job.Args.Before, After: job.Args.After, FastUpdate: job.Args.FastUpdate, Guild: "", Channel: val}
 				jobtmp := NewJob(ja)
 				a.Enqueue(jobtmp)
 			}
 			if err != nil {
 				job.Status = ERROR
 				job.Error = err
+				log.Error(err)
 			} else {
 				job.Status = FINISHED
 			}
-
-			log.Println("finished archiving guild......")
 		case models.CHANNEL:
-			fmt.Println("Selected channel mode")
+			//When processing a channel, first index channel, then download its messages
 			job.Status = RUNNING
-			var state JobState = JobState{Progress: &job.Progress, Error: &job.Error, Status: &job.Status}
+			bar := newBar(a.Progress, job.Snowflake, job.Id)
+			a.Wg.Add(1)
+			var state JobState = JobState{Progress: &job.Progress, Error: &job.Error, Status: &job.Status, Bar: bar}
 			err := a.Archiver.IndexChannel(j.Channel)
 			if err != nil {
 				job.Error = err
@@ -239,6 +241,8 @@ func (a *JobQueue) ExecJobArgs(j models.JobArgs, job *Job) {
 			err = a.Archiver.ChannelDownload(j.Channel, j.FastUpdate, j.After, j.Before, state)
 
 			job.Progress = 100
+			bar.SetCurrent(100)
+
 			if err != nil {
 				job.Error = err
 				job.Status = ERROR
@@ -248,8 +252,25 @@ func (a *JobQueue) ExecJobArgs(j models.JobArgs, job *Job) {
 			} else {
 				job.Status = FINISHED
 			}
+
+			bar.Completed()
+			state.Bar.Completed()
+			a.Wg.Done()
 		}
 	}
+}
+
+func newBar(group *mpb.Progress, snowflake string, id string) *mpb.Bar {
+	bar2 := group.AddBar(int64(100),
+		mpb.PrependDecorators(
+			// simple name decorator
+			decor.Name("Job ID: "+id+" | "+" Snowflake: "+snowflake),
+			// decor.DSyncWidth bit enables column width synchronization
+			decor.Percentage(decor.WCSyncSpace),
+		),
+	)
+
+	return bar2
 }
 
 func (a *JobQueue) CancelJob(id string) error {

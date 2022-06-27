@@ -15,7 +15,6 @@ import (
 
 func main() {
 
-	var archiver = archiver.Archiver{}
 	jobArgs, args := archiver.InitCli()
 
 	//Parse config file if specified
@@ -25,51 +24,34 @@ func main() {
 			panic(err.Error())
 		}
 	}
+	var theArchiver = archiver.Archiver{Args: args}
 
-	archiver.Args = args
-
-	db, err := db.Init_db(archiver.Args.Output)
+	db, err := db.Init_db(theArchiver.Args.Output)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	errDg, dg := archiver.CreateConnection()
+	errDg, dg := theArchiver.CreateConnection()
 	if errDg != nil {
 		panic(errDg.Error())
 	}
-	archiver.Dg = dg
+	theArchiver.Dg = dg
 
-	archiver.Db = *db
-	archiver.Queue = job.NewJobQueue(&archiver)
+	theArchiver.Db = *db
+	theArchiver.Queue = job.NewJobQueue(&theArchiver, theArchiver.Args.Logging)
 
 	//Listener and webview
-	err = archiver.ParseArgs()
+	err = theArchiver.ParseArgs()
 	if err != nil {
 		panic(err.Error())
 	}
 
 	if jobArgs.Mode != models.NONE {
 		//Wait until job is complete and then exit
-
-		// log.Println(archiver.Queue.Queue["asdf"].Category)
-		// go func() {
-		// 	for i := 0; i < 10; i++ {
-		// 		archiver.Queue.Enqueue(job.NewJob(jobArgs))
-		// 	}
-		// }()
-
-		// go func() {
-		// 	for i := 0; i < 10; i++ {
-		// 		ja := models.JobArgs{Mode: models.CHANNEL, Channel: "asdf123"}
-		// 		archiver.Queue.Enqueue(job.NewJob(ja))
-		// 	}
-		// }()
-		// time.Sleep(5 * time.Second)
-		// log.Println("waiting for job to finish")
-		archiver.Queue.Enqueue(job.NewJob(jobArgs))
-		archiver.Queue.Wg.Wait()
-		log.Println("jobs have finished")
-		// log.Println(archiver.Queue.Jobs)
+		theArchiver.Queue.Enqueue(job.NewJob(jobArgs))
+		theArchiver.Queue.Wg.Wait()
+		theArchiver.Queue.Progress.Wait()
+		log.Println("Job has finished")
 
 	} else {
 		//If no job, run forever and wait for jobs

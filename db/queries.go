@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"log"
 
 	"github.com/yakabuff/discord-dl/models"
 )
@@ -40,13 +39,11 @@ func (db Db) GetMessages(guild_id string, channel_id string, last_date int, afte
 			&message.EditTime,
 			&message.ThreadId)
 		if err != nil {
-			log.Println(err)
 			return err, nil
 		}
 
 		err, edits := db.GetEdits(message.MessageId)
 		if err != nil {
-			log.Println(err)
 			return err, nil
 		}
 		err, embeds := db.GetEmbeds(message.MessageId)
@@ -204,19 +201,16 @@ func (db Db) GetAllGuilds() ([]models.GuildOut, error) {
 
 func (db Db) CheckFieldChanged(tableName string, column string, targetValue string) (bool, error) {
 	stmt := `SELECT ` + column + ` FROM ` + tableName + ` ORDER BY date_renamed DESC LIMIT 1`
-	log.Println(stmt)
 	var changed bool = false
 	var rowValue string
 	err := db.DbConnection.QueryRow(stmt).Scan(&rowValue)
 	if err == sql.ErrNoRows {
-		log.Println("row not found")
 		return true, nil
 	}
 	if err != nil {
-		log.Println("something wrong")
 		return false, err
 	}
-	log.Println(rowValue + " vs " + targetValue)
+
 	if rowValue != targetValue {
 		changed = true
 	}

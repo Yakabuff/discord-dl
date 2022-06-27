@@ -9,7 +9,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -119,9 +118,9 @@ func DownloadFile(url string, channel_id string, path string, save bool) (string
 	defer resp.Body.Close()
 
 	newpath := filepath.Join(".", path, channel_id)
-	os.MkdirAll(newpath, os.ModePerm)
+	err = os.MkdirAll(newpath, os.ModePerm)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 	//read response stream into byte array
 	body, err := io.ReadAll(resp.Body)
@@ -142,7 +141,6 @@ func DownloadFile(url string, channel_id string, path string, save bool) (string
 	_, errExist := os.Stat(newpath)
 	if errExist == nil {
 		//If exist, return hash and do not download file
-		log.Println("File exists")
 		return sum, nil
 	}
 	if errors.Is(errExist, os.ErrNotExist) {
@@ -161,4 +159,13 @@ func DownloadFile(url string, channel_id string, path string, save bool) (string
 	}
 	//If error is not errNotExist, return error and sum. Something is wrong
 	return sum, errExist
+}
+
+func Contains(channels []string, id string) bool {
+	for _, a := range channels {
+		if a == id {
+			return true
+		}
+	}
+	return false
 }

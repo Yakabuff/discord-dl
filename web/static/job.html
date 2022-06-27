@@ -60,7 +60,7 @@
                 </tr>
                 {{range .Jobs}}
                     <tr>
-                        <td><button onclick="cancel()">Cancel</button></td>
+                        <td><button id="{{ .Id }}" onclick="cancel(this.id)">Cancel</button></td>
                         <td>{{.Id}}</td>
                         <td>{{.Snowflake}}</td>
                         <td>{{.Progress}}%</td>
@@ -74,7 +74,8 @@
     </body>
 
     <script>
-        function cancel(){
+        function cancel(jobid){
+            alert(jobid)
             let xhr = new XMLHttpRequest();
             xhr.open("POST", "/"+cancel+"/"+jobid, true);
             try { xhr.send(); } catch (err) { 

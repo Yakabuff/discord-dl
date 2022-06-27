@@ -2,7 +2,6 @@ package archiver
 
 import (
 	"errors"
-	"log"
 
 	"github.com/yakabuff/discord-dl/common"
 	"github.com/yakabuff/discord-dl/db"
@@ -21,42 +20,37 @@ import (
 // queue: {[channel1, channel1], [channel2, channel2, channel2]}.  then process first element of every array in queue concurrently?
 
 func (a Archiver) InsertChannelID(channel string) error {
-	log.Println("inserting channel ID")
-
 	errChannel := a.Db.InsertChannelID(channel)
 	if !errors.Is(errChannel, db.UniqueConstraintError) {
-		log.Println(errChannel)
+		log.Error(errChannel)
 		return errChannel
 	}
 	return nil
 }
 
 func (a Archiver) InsertChannelMetadata(channel string, guild string, name string, topic string, isThread bool) error {
-	log.Println("inserting channel meta")
 	var t int
 	if isThread {
 		t = 1
 	}
 	errChannel := a.Db.InsertChannelMeta(channel, guild, name, topic, t)
 	if !errors.Is(errChannel, db.UniqueConstraintError) {
-		log.Println(errChannel)
+		log.Error(errChannel)
 		return errChannel
 	}
 	return nil
 }
 
 func (a Archiver) InsertGuildMetadata(guild string, name string, iconHash string, bannerHash string) error {
-	log.Println("inserting guild meta")
 	errChannel := a.Db.InsertGuildMetadata(guild, name, iconHash, bannerHash)
 	if !errors.Is(errChannel, db.UniqueConstraintError) {
-		log.Println(errChannel)
+		log.Error(errChannel)
 		return errChannel
 	}
 	return nil
 }
 
 func (a Archiver) InsertChannelName(channel string, channelName string) error {
-	log.Println("Inserting channel name")
 	changed, err := a.CheckFieldChanged("channel_names", "channel_name", channelName)
 	if err != nil {
 		return err
@@ -71,7 +65,6 @@ func (a Archiver) InsertChannelName(channel string, channelName string) error {
 }
 
 func (a Archiver) InsertChannelTopic(channel string, topic string) error {
-	log.Println("inserting channel topic")
 	changed, err := a.CheckFieldChanged("channel_topics", "channel_topic", topic)
 	if err != nil {
 		return err
@@ -86,10 +79,8 @@ func (a Archiver) InsertChannelTopic(channel string, topic string) error {
 }
 
 func (a Archiver) InsertGuildID(guild string) error {
-	log.Println("Inserting guild")
 	errGuild := a.Db.InsertGuildID(guild)
-	log.Println(errGuild)
-	log.Println(guild)
+
 	if !errors.Is(errGuild, db.UniqueConstraintError) {
 		return errGuild
 	}
@@ -97,7 +88,6 @@ func (a Archiver) InsertGuildID(guild string) error {
 }
 
 func (a Archiver) InsertGuildName(guild string, guildName string) error {
-	log.Println("Inserting guild name")
 	changed, err := a.CheckFieldChanged("guild_names", "guild_name", guildName)
 	if err != nil {
 		return err
@@ -112,7 +102,6 @@ func (a Archiver) InsertGuildName(guild string, guildName string) error {
 }
 
 func (a Archiver) InsertGuildHistoricalIcons(guild string, hash string) error {
-	log.Println("inserting guild icons")
 	changed, err := a.CheckFieldChanged("guild_icons", "guild_icon_hash", hash)
 	if err != nil {
 		return err
@@ -127,7 +116,6 @@ func (a Archiver) InsertGuildHistoricalIcons(guild string, hash string) error {
 }
 
 func (a Archiver) InsertGuildHistoricalBanner(guild string, hash string) error {
-	log.Println("inserting guild banner")
 	changed, err := a.CheckFieldChanged("guild_banners", "guild_banner_hash", hash)
 	if err != nil {
 		return err
@@ -142,11 +130,10 @@ func (a Archiver) InsertGuildHistoricalBanner(guild string, hash string) error {
 }
 
 func (a Archiver) CheckFieldChanged(tableName string, column string, targetValue string) (bool, error) {
-	log.Println("Checking if field changed " + targetValue)
+	// log.Println("Checking if field changed " + targetValue)
 	changed, err := a.Db.CheckFieldChanged(tableName, column, targetValue)
-	log.Println(changed)
 	if err != nil {
-		log.Println(err)
+		log.Error(err)
 	}
 	return changed, err
 }
@@ -174,12 +161,11 @@ func (a Archiver) IndexGuild(guild string) error {
 	if g.ID != "" {
 		iconHash, err = common.DownloadFile(g.IconURL(), g.ID, a.Args.MediaLocation, true)
 		if err != nil {
-			log.Println(err)
+			log.Error(err)
 		}
-		if iconHash != g.Icon {
-			log.Println("Mismatch icon hashes")
-			log.Println(iconHash + " vs " + g.Icon)
-		}
+		// if iconHash != g.Icon {
+		// 	log.Println("Mismatch icon hashes")
+		// }
 		//Insert and download guild icon if different.  If g.Icon != select icon_hash from guild_icon ORDER BY date ASC LIMIT 1
 
 		err = a.InsertGuildHistoricalIcons(g.ID, iconHash)
@@ -190,10 +176,10 @@ func (a Archiver) IndexGuild(guild string) error {
 	if g.Banner != "" {
 		bannerHash, err := common.DownloadFile(g.BannerURL(), g.ID, a.Args.MediaLocation, true)
 		if err != nil {
-			log.Println(err)
+			log.Error(err)
 		}
 		if bannerHash != g.Banner {
-			log.Println("mismatch banner hash")
+			log.Info("mismatch banner hash")
 		}
 		//Insert and download guild banner if different
 
@@ -213,7 +199,7 @@ func (a Archiver) IndexGuild(guild string) error {
 
 //Index channel metadata: topic, name, guild it belongs to, channel type
 func (a Archiver) IndexChannel(channel string) error {
-	log.Println("Indexing channel")
+
 	c, err := a.Dg.Channel(channel)
 	if err != nil {
 		return err

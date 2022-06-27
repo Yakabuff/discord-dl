@@ -57,7 +57,7 @@ func createTable(db *sql.DB) {
 		"guild_id" TEXT NOT NULL,
 		"date_renamed" INTEGER NOT NULL,
 		"guild_name" TEXT NOT NULL,
-		FOREIGN KEY (guild_id) REFERENCES guilds(guild_id),
+		FOREIGN KEY (guild_id) REFERENCES guilds(guild_id)
 		PRIMARY KEY(guild_id, date_renamed)
 	);`
 
@@ -147,6 +147,36 @@ func createTable(db *sql.DB) {
 		FOREIGN KEY (message_id) REFERENCES messages(message_id)
 	);`
 
+	guildNameTrigger := `
+	CREATE TRIGGER guildNameTrigger BEFORE INSERT ON guild_names
+	BEGIN
+	SELECT
+		CASE
+			WHEN EXISTS (SELECT * from (select * from guild_names where guild_id = NEW.guild_id order by date_renamed DESC LIMIT 1) t WHERE t.guild_name IS NEW.guild_name order by date_renamed DESC)
+				THEN RAISE (ABORT, 'guildNameTrigger violated')
+		END;
+	END;
+	`
+	guildIconTrigger := `
+	CREATE TRIGGER guildIconTrigger BEFORE INSERT ON guild_icons
+	BEGIN
+	SELECT
+		CASE
+			WHEN EXISTS (SELECT * from (select * from guild_icons where guild_id = NEW.guild_id order by date_renamed DESC LIMIT 1) t WHERE t.guild_icon_hash IS NEW.guild_icon_hash order by date_renamed DESC)
+				THEN RAISE (ABORT, 'guildIconTrigger violated')
+		END;
+	END;
+	`
+	guildBannerTrigger := `
+	CREATE TRIGGER guildBannerTrigger BEFORE INSERT ON guild_banners
+	BEGIN
+	SELECT
+		CASE
+			WHEN EXISTS (SELECT * from (select * from guild_banners where guild_id = NEW.guild_id order by date_renamed DESC LIMIT 1) t WHERE t.guild_banner_hash IS NEW.guild_banner_hash order by date_renamed DESC)
+				THEN RAISE (ABORT, 'guildBannerTrigger violated')
+		END;
+	END;
+	`
 	log.Println("Create channels table...")
 	statement_channel, err := db.Prepare(createChannels) // Prepare SQL Statement
 	if err != nil {
@@ -282,4 +312,28 @@ func createTable(db *sql.DB) {
 		log.Fatal(err.Error())
 	}
 	statement_embeds_index.Exec()
+
+	log.Println("Create guildNames trigger...")
+	statement_t1, err := db.Prepare(guildNameTrigger) // Prepare SQL Statement
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	statement_t1.Exec() // Execute SQL Statements
+	log.Println("GuildNames trigger created")
+
+	log.Println("Create guildIcon trigger...")
+	statement_t2, err := db.Prepare(guildIconTrigger) // Prepare SQL Statement
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	statement_t2.Exec() // Execute SQL Statements
+	log.Println("GuildIcon trigger created")
+
+	log.Println("Create guildBanner trigger...")
+	statement_t3, err := db.Prepare(guildBannerTrigger) // Prepare SQL Statement
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	statement_t3.Exec() // Execute SQL Statements
+	log.Println("GuildBanner trigger created")
 }

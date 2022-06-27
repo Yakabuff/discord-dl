@@ -3,12 +3,12 @@ package archiver
 import (
 	"errors"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/vbauerster/mpb/v7"
 	"github.com/yakabuff/discord-dl/common"
 	"github.com/yakabuff/discord-dl/db"
 	"github.com/yakabuff/discord-dl/job"
@@ -20,12 +20,11 @@ func (a Archiver) ChannelDownload(channel string, fastUpdate bool, after string,
 	// case 3: after AND before floag
 	// case 4: --fast-update flag
 	// case 5: contains no flag
-	log.Println("Downloading channel " + channel)
+	// log.Println("Downloading channel " + channel)
 
 	c, err := a.Dg.Channel(channel)
 	if err != nil {
 		if err.(*discordgo.RESTError).Message.Code == 50001 {
-			log.Println("Do not have permission for channel")
 			return nil
 		}
 		log.Println(err)
@@ -34,7 +33,6 @@ func (a Archiver) ChannelDownload(channel string, fastUpdate bool, after string,
 	}
 
 	if c == nil {
-		log.Println("Channel is nil")
 		return nil
 	}
 
@@ -127,14 +125,13 @@ func (a Archiver) DownloadMessages(before_id string, after_id string, channel_id
 	var _afterid string = after_id
 	messages, error := a.Dg.ChannelMessages(channel_id, 100, before_id, "", "")
 	if error != nil {
-		log.Println(error)
+		log.Error(error)
 
 		return error
 	}
 	//Start archiving messages
 	var in_range bool = true
 	for len(messages) != 0 && in_range {
-		log.Println(len(messages))
 		for _, m := range messages {
 			// timestamp, _ := discordgo.SnowflakeTimestamp(m.ID)
 			id := m.ID
@@ -144,7 +141,7 @@ func (a Archiver) DownloadMessages(before_id string, after_id string, channel_id
 			m.GuildID = guild_id
 			if after_id != "" {
 				if id > after_id {
-					log.Printf("Downloading message %s %s\n", m.Timestamp, m.ID)
+					// log.Printf("Downloading message %s %s\n", m.Timestamp, m.ID)
 					before_id = id
 					//insert into db
 					err := a.InsertMessage(m, fast_update, a.Args.DownloadMedia)
@@ -152,11 +149,11 @@ func (a Archiver) DownloadMessages(before_id string, after_id string, channel_id
 						if errors.Is(err, db.UniqueConstraintError) {
 							return nil
 						}
-						log.Println(err)
+						log.Error(err)
 						return err
 					}
 
-					CalculateChannelProgress(_afterid, _beforeid, m.ID, state.Progress)
+					CalculateChannelProgress(_afterid, _beforeid, m.ID, state.Progress, state.Bar)
 					if *state.Status == job.CANCELLED {
 						return nil
 					}
@@ -175,7 +172,7 @@ func (a Archiver) DownloadMessages(before_id string, after_id string, channel_id
 					break
 				}
 			} else {
-				log.Printf("Downloading message %s %s %s\n", m.Timestamp, m.ID, m.ChannelID)
+				// log.Printf("Downloading message %s %s %s\n", m.Timestamp, m.ID, m.ChannelID)
 				err := a.InsertMessage(m, fast_update, a.Args.DownloadMedia)
 				before_id = id
 				if err != nil {
@@ -185,13 +182,13 @@ func (a Archiver) DownloadMessages(before_id string, after_id string, channel_id
 					return err
 				}
 
-				CalculateChannelProgress(_afterid, _beforeid, m.ID, state.Progress)
+				CalculateChannelProgress(_afterid, _beforeid, m.ID, state.Progress, state.Bar)
 				if *state.Status == job.CANCELLED {
 					return nil
 				}
 
 				if m.Thread != nil {
-					log.Println("Thread spotted. Traversing thread: " + m.Thread.ID)
+					// log.Println("Thread spotted. Traversing thread: " + m.Thread.ID)
 					a.IndexChannel(m.Thread.ID)
 					err := a.DownloadMessages("", "", m.Thread.ID, m.Thread.GuildID, fast_update, state)
 					if err != nil {
@@ -211,7 +208,7 @@ func (a Archiver) DownloadMessages(before_id string, after_id string, channel_id
 	return nil
 }
 
-func CalculateChannelProgress(afterID string, beforeID string, currMessageID string, progress *int) {
+func CalculateChannelProgress(afterID string, beforeID string, currMessageID string, progress *int, bar *mpb.Bar) {
 	//If only after empty: after == discordEpoch, before = before.  after = after - after. before = before - after. curr = curr - after
 	//If only before empty: after == after, before = curr unix time.  after = after - after. before = before - after. curr = curr - after
 	//If both empty..
@@ -220,19 +217,15 @@ func CalculateChannelProgress(afterID string, beforeID string, currMessageID str
 	var endTime int64
 	// if after == 0, assume discord epoch
 	if afterID == "" && beforeID != "" {
-		log.Println("After empty")
 		endTime = common.DiscordEpoch
 		startTime, _ = common.SnowflakeToUnixTime(beforeID)
 	} else if afterID != "" && beforeID == "" {
-		log.Println("Before empty")
 		endTime, _ = common.SnowflakeToUnixTime(afterID)
 		startTime = time.Now().Unix()
 	} else if afterID == "" && beforeID == "" {
-		log.Println("Both empty")
 		endTime = common.DiscordEpoch / 1000
 		startTime = time.Now().Unix()
 	} else {
-		log.Println("None empty")
 		endTime, _ = common.SnowflakeToUnixTime(afterID)
 		startTime, _ = common.SnowflakeToUnixTime(beforeID)
 	}
@@ -242,5 +235,6 @@ func CalculateChannelProgress(afterID string, beforeID string, currMessageID str
 	var quotient float64 = float64(((float64(startTime) - float64(endTime)) - (float64(currTime) - float64(endTime)))) / (float64(startTime) - float64(endTime))
 	pct := quotient * 100
 	*progress = int(pct)
-	log.Printf("Progress is %d, start time: %d, end time: %d, curr time: %d", *progress, startTime, endTime, currTime)
+	bar.SetCurrent(int64(pct))
+	// log.Printf("Progress is %d, start time: %d, end time: %d, curr time: %d", *progress, startTime, endTime, currTime)
 }

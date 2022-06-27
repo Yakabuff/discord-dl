@@ -1,8 +1,31 @@
+# DISCORD-DL CONFIG
+
+# Toggle downloading media
 DownloadMedia = false
-Token = ""
-Output = ""
-MediaLocation = ""
+
+# Enter discord token
+Token = "Bot asdfasdf"
+
+# Database location
+Output = "~/database/my.db"
+
+# Downloaded media location
+MediaLocation = "~/images/"
+
+# Webapp port
 DeployPort = 8080
+
+# Listen for new messages (works only with bot accounts)
 Listen = false
+
+# Deploy webapp
 Deploy = true
-BlacklistedChannels = []
+
+# Channel IDs of channels you wish to ignore
+BlacklistedChannels = ["channelid1", "channelid2"]
+
+#Channel IDs you wish to listen to if listen is enabled
+ListenChannels = ["channelid1", "channelid2"]
+
+#Guild IDs you wish to listen to if listen is enabled
+ListenGuilds = ["guildid1", "guildid2"]

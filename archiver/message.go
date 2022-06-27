@@ -3,7 +3,7 @@ package archiver
 import (
 	"errors"
 	"fmt"
-	"log"
+	"io/fs"
 	"strings"
 	"time"
 
@@ -52,10 +52,10 @@ func (a Archiver) InsertMessage(m *discordgo.Message, fastUpdate bool, downloadM
 	if fastUpdate == true && errMsg != nil {
 		//check for unique constraint err. If found, exit program
 		if !errors.Is(errMsg, db.UniqueConstraintError) {
-			log.Println(errMsg)
+			log.Error(errMsg)
 			return errMsg
 		} else {
-			log.Println("Fast update triggered")
+			log.Info("Fast update triggered")
 			//return fast update error
 			return models.FastUpdateError
 		}
@@ -73,10 +73,7 @@ func (a Archiver) InsertMessage(m *discordgo.Message, fastUpdate bool, downloadM
 		edit := models.NewEdit(id, editedTimestamp, content)
 		errEdit := a.InsertEdit(edit)
 		if errEdit != nil {
-			log.Println(errEdit)
-			log.Println(edit.MessageId)
-			log.Println(edit.EditTime)
-			log.Println(edit.Content)
+			log.Error(errEdit)
 			return errEdit
 		}
 	}
@@ -88,7 +85,7 @@ func (a Archiver) InsertMessage(m *discordgo.Message, fastUpdate bool, downloadM
 		//If thumbnail != null downlaod thumbnail, add URL to embed, download
 		//If video != null download video, add URL to embed, download
 		//Iterate through fields for every embed.  Combine fields, seperate with \n
-		log.Println(i.Title)
+
 		var fields string
 		if i.Fields != nil {
 			for _, j := range i.Fields {
@@ -141,7 +138,11 @@ func (a Archiver) InsertMessage(m *discordgo.Message, fastUpdate bool, downloadM
 		if i.Image != nil {
 			sum, err := common.DownloadFile(i.Image.URL, m.ChannelID, a.Args.MediaLocation, downloadMedia)
 			if err != nil {
-				log.Println(err)
+				var e *fs.PathError
+				if errors.As(err, &e) {
+					log.Fatal(err)
+				}
+				log.Error(err)
 			}
 
 			embed.EmbedImageHash = sum
@@ -150,7 +151,7 @@ func (a Archiver) InsertMessage(m *discordgo.Message, fastUpdate bool, downloadM
 		if i.Thumbnail != nil {
 			sum, err := common.DownloadFile(i.Thumbnail.URL, m.ChannelID, a.Args.MediaLocation, downloadMedia)
 			if err != nil {
-				log.Println(err)
+				log.Error(err)
 			}
 			embed.EmbedThumbnailHash = sum
 		}
@@ -158,7 +159,7 @@ func (a Archiver) InsertMessage(m *discordgo.Message, fastUpdate bool, downloadM
 		if i.Video != nil && strings.HasPrefix(i.Video.URL, "https://cdn.discordapp.com") {
 			sum, err := common.DownloadFile(i.Video.URL, m.ChannelID, a.Args.MediaLocation, downloadMedia)
 			if err != nil {
-				log.Println(err)
+				log.Error(err)
 			}
 
 			embed.EmbedVideoHash = sum
@@ -166,7 +167,7 @@ func (a Archiver) InsertMessage(m *discordgo.Message, fastUpdate bool, downloadM
 
 		errEmbed := a.InsertEmbed(embed)
 		if errEmbed != nil {
-			log.Println(errEmbed)
+			log.Error(errEmbed)
 			return errEmbed
 		}
 	}
@@ -177,7 +178,7 @@ func (a Archiver) InsertMessage(m *discordgo.Message, fastUpdate bool, downloadM
 		//Download embed media
 		hash, err := common.DownloadFile(i.URL, m.ChannelID, a.Args.MediaLocation, downloadMedia)
 		if err != nil {
-			log.Println(err)
+			log.Error(err)
 		}
 
 		attachment.AttachmentHash = hash

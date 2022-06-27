@@ -21,6 +21,9 @@ type ArchiverArgs struct {
 	Deploy              bool
 	Input               string
 	BlacklistedChannels []string
+	ListenChannels      []string
+	ListenGuilds        []string
+	Logging             bool
 }
 
 type Mode int

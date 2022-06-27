@@ -15,7 +15,7 @@ import (
 	// "github.com/yakabuff/discord-dl/models"
 )
 
-const POSTGRES = "postgres"
+const POSTGRES = "mariadb"
 const SQLITE = "sqlite3"
 
 var UniqueConstraintError = errors.New("Unique constraint error")
@@ -35,7 +35,7 @@ func Init_db(path string) (*Db, error) {
 	}
 
 	driver := determineDbType(path)
-	log.Println(path)
+
 	var dbConn *sql.DB
 	var file *os.File
 	if err == nil {
