@@ -29,3 +29,6 @@ ListenChannels = ["channelid1", "channelid2"]
 
 #Guild IDs you wish to listen to if listen is enabled
 ListenGuilds = ["guildid1", "guildid2"]
+
+#Enable error logging to file
+Logging = true

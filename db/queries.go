@@ -1,8 +1,6 @@
 package db
 
 import (
-	"database/sql"
-
 	"github.com/yakabuff/discord-dl/models"
 )
 
@@ -197,22 +195,4 @@ func (db Db) GetAllGuilds() ([]models.GuildOut, error) {
 		guilds = append(guilds, guild)
 	}
 	return guilds, nil
-}
-
-func (db Db) CheckFieldChanged(tableName string, column string, targetValue string) (bool, error) {
-	stmt := `SELECT ` + column + ` FROM ` + tableName + ` ORDER BY date_renamed DESC LIMIT 1`
-	var changed bool = false
-	var rowValue string
-	err := db.DbConnection.QueryRow(stmt).Scan(&rowValue)
-	if err == sql.ErrNoRows {
-		return true, nil
-	}
-	if err != nil {
-		return false, err
-	}
-
-	if rowValue != targetValue {
-		changed = true
-	}
-	return changed, err
 }

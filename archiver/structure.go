@@ -28,56 +28,6 @@ func (a Archiver) InsertChannelID(channel string) error {
 	return nil
 }
 
-func (a Archiver) InsertChannelMetadata(channel string, guild string, name string, topic string, isThread bool) error {
-	var t int
-	if isThread {
-		t = 1
-	}
-	errChannel := a.Db.InsertChannelMeta(channel, guild, name, topic, t)
-	if !errors.Is(errChannel, db.UniqueConstraintError) {
-		log.Error(errChannel)
-		return errChannel
-	}
-	return nil
-}
-
-func (a Archiver) InsertGuildMetadata(guild string, name string, iconHash string, bannerHash string) error {
-	errChannel := a.Db.InsertGuildMetadata(guild, name, iconHash, bannerHash)
-	if !errors.Is(errChannel, db.UniqueConstraintError) {
-		log.Error(errChannel)
-		return errChannel
-	}
-	return nil
-}
-
-func (a Archiver) InsertChannelName(channel string, channelName string) error {
-	changed, err := a.CheckFieldChanged("channel_names", "channel_name", channelName)
-	if err != nil {
-		return err
-	}
-	if changed {
-		errChannel := a.Db.InsertChannelHistoricalNames(channel, channelName)
-		if !errors.Is(errChannel, db.UniqueConstraintError) {
-			return errChannel
-		}
-	}
-	return nil
-}
-
-func (a Archiver) InsertChannelTopic(channel string, topic string) error {
-	changed, err := a.CheckFieldChanged("channel_topics", "channel_topic", topic)
-	if err != nil {
-		return err
-	}
-	if changed {
-		errChannel := a.Db.InsertChannelHistoricalTopic(channel, topic)
-		if !errors.Is(errChannel, db.UniqueConstraintError) {
-			return errChannel
-		}
-	}
-	return nil
-}
-
 func (a Archiver) InsertGuildID(guild string) error {
 	errGuild := a.Db.InsertGuildID(guild)
 
@@ -85,57 +35,6 @@ func (a Archiver) InsertGuildID(guild string) error {
 		return errGuild
 	}
 	return nil
-}
-
-func (a Archiver) InsertGuildName(guild string, guildName string) error {
-	changed, err := a.CheckFieldChanged("guild_names", "guild_name", guildName)
-	if err != nil {
-		return err
-	}
-	if changed {
-		errGuild := a.Db.InsertGuildHistoricalNames(guild, guildName)
-		if !errors.Is(errGuild, db.UniqueConstraintError) {
-			return errGuild
-		}
-	}
-	return nil
-}
-
-func (a Archiver) InsertGuildHistoricalIcons(guild string, hash string) error {
-	changed, err := a.CheckFieldChanged("guild_icons", "guild_icon_hash", hash)
-	if err != nil {
-		return err
-	}
-	if changed {
-		err := a.Db.InsertGuildHistoricalIcons(guild, hash)
-		if !errors.Is(err, db.UniqueConstraintError) {
-			return err
-		}
-	}
-	return nil
-}
-
-func (a Archiver) InsertGuildHistoricalBanner(guild string, hash string) error {
-	changed, err := a.CheckFieldChanged("guild_banners", "guild_banner_hash", hash)
-	if err != nil {
-		return err
-	}
-	if changed {
-		err := a.Db.InsertGuildHistoricalBanner(guild, hash)
-		if !errors.Is(err, db.UniqueConstraintError) {
-			return err
-		}
-	}
-	return nil
-}
-
-func (a Archiver) CheckFieldChanged(tableName string, column string, targetValue string) (bool, error) {
-	// log.Println("Checking if field changed " + targetValue)
-	changed, err := a.Db.CheckFieldChanged(tableName, column, targetValue)
-	if err != nil {
-		log.Error(err)
-	}
-	return changed, err
 }
 
 //Index guild metadata: icon, name, banner
@@ -152,14 +51,13 @@ func (a Archiver) IndexGuild(guild string) error {
 	//Insert guild name if different
 	//make sure latest guild name != g.Name
 
-	err = a.InsertGuildName(g.ID, g.Name)
+	err = a.Db.InsertGuildNames(g.ID, g.Name)
 	if err != nil {
 		return err
 	}
-	var iconHash string
-	var bannerHash string
+
 	if g.ID != "" {
-		iconHash, err = common.DownloadFile(g.IconURL(), g.ID, a.Args.MediaLocation, true)
+		iconHash, err := common.DownloadFile(g.IconURL(), g.ID, a.Args.MediaLocation, true)
 		if err != nil {
 			log.Error(err)
 		}
@@ -168,7 +66,7 @@ func (a Archiver) IndexGuild(guild string) error {
 		// }
 		//Insert and download guild icon if different.  If g.Icon != select icon_hash from guild_icon ORDER BY date ASC LIMIT 1
 
-		err = a.InsertGuildHistoricalIcons(g.ID, iconHash)
+		err = a.Db.InsertGuildIcons(g.ID, iconHash)
 		if err != nil {
 			return err
 		}
@@ -178,22 +76,15 @@ func (a Archiver) IndexGuild(guild string) error {
 		if err != nil {
 			log.Error(err)
 		}
-		if bannerHash != g.Banner {
-			log.Info("mismatch banner hash")
-		}
 		//Insert and download guild banner if different
 
-		err = a.InsertGuildHistoricalBanner(g.ID, bannerHash)
+		err = a.Db.InsertGuildBanner(g.ID, bannerHash)
 		if err != nil {
 			return err
 		}
 	}
-	err = a.InsertGuildMetadata(g.ID, g.Name, iconHash, bannerHash)
-	if err != nil {
-		return err
-	}
 	//Update guild with new metadata (if any)
-	err = a.Db.UpdateGuildMetadata(g.ID, g.Name, iconHash, bannerHash)
+	err = a.Db.UpdateGuildMetaTransaction(g.ID)
 	return err
 }
 
@@ -216,21 +107,19 @@ func (a Archiver) IndexChannel(channel string) error {
 		return err
 	}
 
-	//Insert name if different
-	err = a.InsertChannelName(c.ID, c.Name)
+	err = a.Db.InsertChannelNames(c.ID, c.Name)
 	if err != nil {
 		return err
 	}
-	//Insert topic if different
-	err = a.InsertChannelTopic(c.ID, c.Topic)
+
+	err = a.Db.InsertChannelTopic(c.ID, c.Topic)
 	if err != nil {
 		return err
 	}
-	err = a.InsertChannelMetadata(c.ID, c.GuildID, c.Name, c.Topic, c.IsThread())
+	err = a.Db.UpdateChannelMetaTransaction(c.ID, c.IsThread(), c.GuildID)
 	if err != nil {
 		return err
 	}
-	//update current channel metadata if applicable
-	err = a.Db.UpdateChannelMetadata(c.ID, c.Name, c.Topic)
+
 	return err
 }

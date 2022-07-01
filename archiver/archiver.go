@@ -110,12 +110,12 @@ func InitCli() (models.JobArgs, models.ArchiverArgs) {
 	blacklistedChannels := flag.String("blacklisted-channels", "", "Sets list of blacklisted channel IDs as a string delimited by a comma. Can only be used with guild")
 	mediaLocation := flag.String("media-location", "media", "Set location to store attachments and media")
 	version := flag.Bool("version", false, "Checks version")
-	logging := flag.Bool("log", false, "Verbose logging")
+	logging := flag.Bool("log", true, "Verbose logging to file")
 	flag.Parse()
 
 	if *version {
 		fmt.Println(VERSION)
-		os.Exit(1)
+		os.Exit(0)
 	}
 
 	mode := checkFlagMode(*input, *guild, *channel)

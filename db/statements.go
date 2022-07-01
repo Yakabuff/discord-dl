@@ -64,7 +64,7 @@ func (db Db) InsertChannelID(channel string) error {
 	_, err := db.DbConnection.Exec(stmt, channel)
 	if sqliteErr, ok := err.(sqlite3.Error); ok {
 		if sqliteErr.Code == 19 && sqliteErr.ExtendedCode == 1555 {
-			return UniqueConstraintError
+			return nil
 		} else {
 			return err
 		}
@@ -72,12 +72,14 @@ func (db Db) InsertChannelID(channel string) error {
 	return err
 }
 
-func (db Db) InsertChannelMeta(channel string, guild string, name string, topic string, isThread int) error {
-	stmt := `INSERT INTO channels_meta(channel_id, name, topic, guild_id, is_thread) VALUES($1, $2, $3, $4, $5)`
-	_, err := db.DbConnection.Exec(stmt, channel, name, topic, guild, isThread)
+//fix
+func (db Db) InsertChannelNames(channel string, name string) error {
+	now := time.Now().UnixNano()
+	stmt := `INSERT INTO channel_names(channel_id, date_renamed, channel_name) VALUES($1, $2, $3)`
+	_, err := db.DbConnection.Exec(stmt, channel, now/1000000, name)
 	if sqliteErr, ok := err.(sqlite3.Error); ok {
 		if sqliteErr.Code == 19 && sqliteErr.ExtendedCode == 1555 {
-			return UniqueConstraintError
+			return nil
 		} else {
 			return err
 		}
@@ -85,35 +87,11 @@ func (db Db) InsertChannelMeta(channel string, guild string, name string, topic 
 	return err
 }
 
-func (db Db) InsertChannelHistoricalNames(channel string, name string) error {
-	stmt := `INSERT INTO channel_names(channel_id, date_renamed, channel_name) VALUES($1, strftime('%s', 'now'), $2)`
-	_, err := db.DbConnection.Exec(stmt, channel, name)
-	if sqliteErr, ok := err.(sqlite3.Error); ok {
-		if sqliteErr.Code == 19 && sqliteErr.ExtendedCode == 1555 {
-			return UniqueConstraintError
-		} else {
-			return err
-		}
-	}
-	return err
-}
-
-func (db Db) InsertChannelHistoricalTopic(channel string, topic string) error {
-	stmt := `INSERT INTO channel_topics(channel_id, date_renamed, channel_topic) VALUES($1, strftime('%s', 'now'), $2)`
-	_, err := db.DbConnection.Exec(stmt, channel, topic)
-	if sqliteErr, ok := err.(sqlite3.Error); ok {
-		if sqliteErr.Code == 19 && sqliteErr.ExtendedCode == 1555 {
-			return UniqueConstraintError
-		} else {
-			return err
-		}
-	}
-	return err
-}
-
-func (db Db) UpdateChannelMetadata(channel string, name string, topic string) error {
-	stmt := `UPDATE channels_meta SET topic = $1, name = $2 WHERE channel_id = $3`
-	_, err := db.DbConnection.Exec(stmt, topic, name, channel)
+//fix
+func (db Db) InsertChannelTopic(channel string, topic string) error {
+	now := time.Now().UnixNano()
+	stmt := `INSERT INTO channel_topics(channel_id, date_renamed, channel_topic) VALUES($1, $2, $3)`
+	_, err := db.DbConnection.Exec(stmt, channel, now/1000000, topic)
 	return err
 }
 
@@ -122,65 +100,7 @@ func (db Db) InsertGuildID(guild string) error {
 	_, err := db.DbConnection.Exec(stmt, guild)
 	if sqliteErr, ok := err.(sqlite3.Error); ok {
 		if sqliteErr.Code == 19 && sqliteErr.ExtendedCode == 1555 {
-			return UniqueConstraintError
-		} else {
-			return err
-		}
-	}
-	return err
-}
-
-func (db Db) InsertGuildMetadata(guild string, name string, iconHash string, bannerHash string) error {
-	stmt := `INSERT INTO guilds_meta(guild_id, icon, banner, name) values($1, $2, $3, $4)`
-	_, err := db.DbConnection.Exec(stmt, guild, iconHash, bannerHash, name)
-	if sqliteErr, ok := err.(sqlite3.Error); ok {
-		if sqliteErr.Code == 19 && sqliteErr.ExtendedCode == 1555 {
-			return UniqueConstraintError
-		} else {
-			return err
-		}
-	}
-	return err
-}
-
-func (db Db) UpdateGuildMetadata(guild string, name string, iconHash string, bannerHash string) error {
-	stmt := `UPDATE guilds_meta SET icon = $1, banner = $2, name = $3 WHERE guild_id = $4`
-	_, err := db.DbConnection.Exec(stmt, iconHash, bannerHash, name, guild)
-	return err
-}
-
-func (db Db) InsertGuildHistoricalNames(guild string, guild_name string) error {
-	stmt := `INSERT INTO guild_names(guild_id, date_renamed, guild_name) VALUES($1, strftime('%s', 'now'), $2)`
-	_, err := db.DbConnection.Exec(stmt, guild, guild_name)
-	if sqliteErr, ok := err.(sqlite3.Error); ok {
-		if sqliteErr.Code == 19 && sqliteErr.ExtendedCode == 1555 {
-			return UniqueConstraintError
-		} else {
-			return err
-		}
-	}
-	return err
-}
-
-func (db Db) InsertGuildHistoricalIcons(guild string, hash string) error {
-	stmt := `INSERT INTO guild_icons(guild_id, date_renamed, guild_icon_hash) VALUES($1, strftime('%s', 'now'), $2)`
-	_, err := db.DbConnection.Exec(stmt, guild, hash)
-	if sqliteErr, ok := err.(sqlite3.Error); ok {
-		if sqliteErr.Code == 19 && sqliteErr.ExtendedCode == 1555 {
-			return UniqueConstraintError
-		} else {
-			return err
-		}
-	}
-	return err
-}
-
-func (db Db) InsertGuildHistoricalBanner(guild string, hash string) error {
-	stmt := `INSERT INTO guild_banners(guild_id, date_renamed, guild_banner_hash) VALUES($1, strftime('%s', 'now'), $2)`
-	_, err := db.DbConnection.Exec(stmt, guild, hash)
-	if sqliteErr, ok := err.(sqlite3.Error); ok {
-		if sqliteErr.Code == 19 && sqliteErr.ExtendedCode == 1555 {
-			return UniqueConstraintError
+			return nil
 		} else {
 			return err
 		}
@@ -195,15 +115,6 @@ func (db Db) InsertAttachment(m models.Attachment) error {
 	`
 	_, err := db.DbConnection.Exec(stmt, m.MessageId, m.AttachmentId, m.AttachmentFilename, m.AttachmentUrl, m.AttachmentHash)
 
-	if sqliteErr, ok := err.(sqlite3.Error); ok {
-		if sqliteErr.Code == 19 && sqliteErr.ExtendedCode == 1555 {
-			//1555 == ErrConstraintPrimaryKey
-			//19 == ErrConstraint
-			return UniqueConstraintError
-		} else {
-			return err
-		}
-	}
 	return err
 }
 
@@ -213,15 +124,6 @@ func (db Db) InsertGuildNames(gid string, guild_name string) error {
 	stmt := `INSERT INTO guild_names VALUES($1, $2, $3);`
 	_, err := db.DbConnection.Exec(stmt, gid, now/1000000, guild_name)
 
-	if sqliteErr, ok := err.(sqlite3.Error); ok {
-		if sqliteErr.Code == 19 && sqliteErr.ExtendedCode == 1555 {
-			//1555 == ErrConstraintPrimaryKey
-			//19 == ErrConstraint
-			return UniqueConstraintError
-		} else {
-			return err
-		}
-	}
 	return err
 }
 
@@ -231,15 +133,6 @@ func (db Db) InsertGuildIcons(gid string, icon_hash string) error {
 	stmt := `INSERT INTO guild_icons VALUES($1, $2, $3);`
 	_, err := db.DbConnection.Exec(stmt, gid, now/1000000, icon_hash)
 
-	if sqliteErr, ok := err.(sqlite3.Error); ok {
-		if sqliteErr.Code == 19 && sqliteErr.ExtendedCode == 1555 {
-			//1555 == ErrConstraintPrimaryKey
-			//19 == ErrConstraint
-			return UniqueConstraintError
-		} else {
-			return err
-		}
-	}
 	return err
 }
 
@@ -249,15 +142,6 @@ func (db Db) InsertGuildBanner(gid string, banner_hash string) error {
 	stmt := `INSERT INTO guild_banners VALUES($1, $2, $3);`
 	_, err := db.DbConnection.Exec(stmt, gid, now/1000000, banner_hash)
 
-	if sqliteErr, ok := err.(sqlite3.Error); ok {
-		if sqliteErr.Code == 19 && sqliteErr.ExtendedCode == 1555 {
-			//1555 == ErrConstraintPrimaryKey
-			//19 == ErrConstraint
-			return UniqueConstraintError
-		} else {
-			return err
-		}
-	}
 	return err
 }
 
@@ -292,6 +176,42 @@ func (db Db) UpdateGuildMetaTransaction(gid string) error {
 		return err
 	}
 	_, err = tx.Exec(insert, gid, icon, banner, name)
+
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	err = tx.Commit()
+	return err
+
+}
+
+func (db Db) UpdateChannelMetaTransaction(cid string, isThread bool, gid string) error {
+
+	insert := `INSERT INTO channels_meta values($1, $2, $3, $4, $5) ON CONFLICT(channel_id) DO UPDATE SET channel_id = $1, name = $2, topic = $3;`
+
+	var name, topic string
+	var row *sql.Row
+
+	tx, err := db.DbConnection.Begin()
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	row = tx.QueryRow("select channel_name from channel_names order by date_renamed DESC LIMIT 1;")
+	err = row.Scan(&name)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	row = tx.QueryRow("select channel_topic from channel_topics order by date_renamed DESC LIMIT 1;")
+	err = row.Scan(&topic)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	_, err = tx.Exec(insert, cid, name, topic, gid, isThread)
 
 	if err != nil {
 		tx.Rollback()
