@@ -23,7 +23,10 @@ func (a Archiver) CreateConnection() (error, *discordgo.Session) {
 		return err, nil
 	}
 	u, err := dg.User("@me")
-
+	if err != nil {
+		log.Error(err.Error())
+		return err, nil
+	}
 	log.Infof("discord-dl has succesfully logged into %s#%s %s\n", u.Username, u.Discriminator, u.ID)
 
 	return nil, dg

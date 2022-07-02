@@ -3,6 +3,7 @@ package archiver
 import (
 	"errors"
 
+	"github.com/mattn/go-sqlite3"
 	"github.com/yakabuff/discord-dl/common"
 	"github.com/yakabuff/discord-dl/db"
 )
@@ -21,8 +22,9 @@ import (
 
 func (a Archiver) InsertChannelID(channel string) error {
 	errChannel := a.Db.InsertChannelID(channel)
-	if !errors.Is(errChannel, db.UniqueConstraintError) {
-		log.Error(errChannel)
+
+	if errChannel != nil {
+		log.Error(errChannel.Error())
 		return errChannel
 	}
 	return nil
@@ -109,12 +111,22 @@ func (a Archiver) IndexChannel(channel string) error {
 
 	err = a.Db.InsertChannelNames(c.ID, c.Name)
 	if err != nil {
-		return err
+		var sqliteErr sqlite3.Error
+		if errors.As(err, &sqliteErr) {
+			if int(sqliteErr.Code) != 19 && int(sqliteErr.ExtendedCode) != 1811 {
+				return err
+			}
+		}
 	}
 
 	err = a.Db.InsertChannelTopic(c.ID, c.Topic)
 	if err != nil {
-		return err
+		var sqliteErr sqlite3.Error
+		if errors.As(err, &sqliteErr) {
+			if int(sqliteErr.Code) != 19 && int(sqliteErr.ExtendedCode) != 1811 {
+				return err
+			}
+		}
 	}
 	err = a.Db.UpdateChannelMetaTransaction(c.ID, c.IsThread(), c.GuildID)
 	if err != nil {

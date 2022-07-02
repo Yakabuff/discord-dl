@@ -113,6 +113,7 @@ func initLogger(logger bool) {
 			logrus.New().Fatal(err)
 		}
 		log = l
+		log.SetReportCaller(true)
 	} else {
 		logrus.SetOutput(ioutil.Discard)
 	}
@@ -196,9 +197,8 @@ func (a *JobQueue) ExecJobArgs(j models.JobArgs, job *Job) {
 				job.Error = err
 				job.Status = ERROR
 				log.Error(err)
+				a.Wg.Done()
 				return
-			} else {
-				job.Status = FINISHED
 			}
 
 			guilds, err := a.Archiver.GetChannelsGuild(j.Guild)
@@ -206,9 +206,8 @@ func (a *JobQueue) ExecJobArgs(j models.JobArgs, job *Job) {
 				job.Error = err
 				job.Status = ERROR
 				log.Error(err)
+				a.Wg.Done()
 				return
-			} else {
-				job.Status = FINISHED
 			}
 
 			for _, val := range guilds {
@@ -223,6 +222,8 @@ func (a *JobQueue) ExecJobArgs(j models.JobArgs, job *Job) {
 			} else {
 				job.Status = FINISHED
 			}
+			a.Wg.Done()
+
 		case models.CHANNEL:
 			//When processing a channel, first index channel, then download its messages
 			job.Status = RUNNING
@@ -231,11 +232,13 @@ func (a *JobQueue) ExecJobArgs(j models.JobArgs, job *Job) {
 			var state JobState = JobState{Progress: &job.Progress, Error: &job.Error, Status: &job.Status, Bar: bar}
 			err := a.Archiver.IndexChannel(j.Channel)
 			if err != nil {
+				log.Error(err)
 				job.Error = err
 				job.Status = ERROR
+
+				bar.Abort(false)
+				a.Wg.Done()
 				return
-			} else {
-				job.Status = FINISHED
 			}
 
 			err = a.Archiver.ChannelDownload(j.Channel, j.FastUpdate, j.After, j.Before, state)
@@ -248,6 +251,10 @@ func (a *JobQueue) ExecJobArgs(j models.JobArgs, job *Job) {
 				job.Status = ERROR
 				if errors.Is(err, models.FastUpdateError) {
 					job.Status = FINISHED
+				} else {
+					bar.Abort(false)
+					a.Wg.Done()
+					return
 				}
 			} else {
 				job.Status = FINISHED

@@ -38,6 +38,8 @@ func (a Archiver) ParseArgs() error {
 			logrus.New().Fatal(err)
 		}
 		log = l
+		log.SetReportCaller(true)
+		log.Info("Initialized logger")
 	} else {
 		logrus.SetOutput(ioutil.Discard)
 	}

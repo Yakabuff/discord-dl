@@ -26,6 +26,12 @@ func main() {
 	}
 	var theArchiver = archiver.Archiver{Args: args}
 
+	//Listener and webview
+	err := theArchiver.ParseArgs()
+	if err != nil {
+		panic(err.Error())
+	}
+
 	db, err := db.Init_db(theArchiver.Args.Output)
 	if err != nil {
 		panic(err.Error())
@@ -33,18 +39,13 @@ func main() {
 
 	errDg, dg := theArchiver.CreateConnection()
 	if errDg != nil {
+		log.Println(theArchiver.Args.Token)
 		panic(errDg.Error())
 	}
 	theArchiver.Dg = dg
 
 	theArchiver.Db = *db
 	theArchiver.Queue = job.NewJobQueue(&theArchiver, theArchiver.Args.Logging)
-
-	//Listener and webview
-	err = theArchiver.ParseArgs()
-	if err != nil {
-		panic(err.Error())
-	}
 
 	if jobArgs.Mode != models.NONE {
 		//Wait until job is complete and then exit

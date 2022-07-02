@@ -77,13 +77,14 @@ func (db Db) InsertChannelNames(channel string, name string) error {
 	now := time.Now().UnixNano()
 	stmt := `INSERT INTO channel_names(channel_id, date_renamed, channel_name) VALUES($1, $2, $3)`
 	_, err := db.DbConnection.Exec(stmt, channel, now/1000000, name)
-	if sqliteErr, ok := err.(sqlite3.Error); ok {
-		if sqliteErr.Code == 19 && sqliteErr.ExtendedCode == 1555 {
-			return nil
-		} else {
-			return err
-		}
-	}
+
+	// if sqliteErr, ok := err.(sqlite3.Error); ok {
+	// 	if sqliteErr.Code == 19 && sqliteErr.ExtendedCode == 1555 {
+	// 		return nil
+	// 	} else {
+	// 		return err
+	// 	}
+	// }
 	return err
 }
 
