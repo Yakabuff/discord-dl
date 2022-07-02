@@ -26,11 +26,7 @@ func main() {
 	}
 	var theArchiver = archiver.Archiver{Args: args}
 
-	//Listener and webview
-	err := theArchiver.ParseArgs()
-	if err != nil {
-		panic(err.Error())
-	}
+	theArchiver.InitLogger()
 
 	db, err := db.Init_db(theArchiver.Args.Output)
 	if err != nil {
@@ -42,9 +38,15 @@ func main() {
 		log.Println(theArchiver.Args.Token)
 		panic(errDg.Error())
 	}
+
 	theArchiver.Dg = dg
 
 	theArchiver.Db = *db
+	//Listener and webview
+	err = theArchiver.ParseArgs()
+	if err != nil {
+		panic(err.Error())
+	}
 	theArchiver.Queue = job.NewJobQueue(&theArchiver, theArchiver.Args.Logging)
 
 	if jobArgs.Mode != models.NONE {

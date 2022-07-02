@@ -31,7 +31,7 @@ type Archiver struct {
 
 var log *logrus.Logger
 
-func (a Archiver) ParseArgs() error {
+func (a Archiver) InitLogger() {
 	if a.Args.Logging {
 		l, err := common.NewErrLogger()
 		if err != nil {
@@ -39,10 +39,11 @@ func (a Archiver) ParseArgs() error {
 		}
 		log = l
 		log.SetReportCaller(true)
-		log.Info("Initialized logger")
 	} else {
 		logrus.SetOutput(ioutil.Discard)
 	}
+}
+func (a Archiver) ParseArgs() error {
 	//Either listening or web deploy
 	if a.Args.Listen == true && strings.HasPrefix(a.Args.Token, "Bot") {
 		log.Info("Listening for changes...")
@@ -51,7 +52,7 @@ func (a Archiver) ParseArgs() error {
 	if a.Args.Deploy == true {
 		log.Info("Starting webview...")
 
-		a.Web = web.NewWeb(a.Db, a.Args.DeployPort, a.Args.MediaLocation, &a.Queue)
+		a.Web = web.NewWeb(a.Db, a.Args.DeployPort, a.Args.MediaLocation, &a.Queue, a.Args.Logging)
 		a.Web.Deploy(a.Db)
 	}
 

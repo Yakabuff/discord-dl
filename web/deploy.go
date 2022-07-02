@@ -3,7 +3,7 @@ package web
 import (
 	"embed"
 	"html/template"
-	"log"
+	"io/ioutil"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/sirupsen/logrus"
+	"github.com/yakabuff/discord-dl/common"
 	"github.com/yakabuff/discord-dl/db"
 	"github.com/yakabuff/discord-dl/job"
 	"github.com/yakabuff/discord-dl/models"
@@ -29,7 +31,23 @@ type Web struct {
 	JobQueue      *job.JobQueue
 }
 
-func NewWeb(db db.Db, port int, mediaLocation string, jobQueue *job.JobQueue) Web {
+var log *logrus.Logger
+
+func initLogger(logger bool) {
+	if logger {
+		l, err := common.NewWebLogger()
+		if err != nil {
+			logrus.New().Fatal(err)
+		}
+		log = l
+		log.SetReportCaller(true)
+	} else {
+		logrus.SetOutput(ioutil.Discard)
+	}
+}
+
+func NewWeb(db db.Db, port int, mediaLocation string, jobQueue *job.JobQueue, logger bool) Web {
+	initLogger(logger)
 	web := Web{}
 	web.db = db
 	web.port = port
@@ -97,7 +115,11 @@ func (web Web) guildHandler(w http.ResponseWriter, r *http.Request) {
 
 func (web Web) channelHandler(w http.ResponseWriter, r *http.Request) {
 	guildParam := strings.TrimSpace(chi.URLParam(r, "guild"))
+	log.Info(guildParam)
+
+	log.Info(web.db)
 	channels, err := web.db.GetChannelsFromGuild(guildParam)
+
 	if err != nil {
 		log.Println(err)
 	}
