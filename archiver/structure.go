@@ -55,7 +55,12 @@ func (a Archiver) IndexGuild(guild string) error {
 
 	err = a.Db.InsertGuildNames(g.ID, g.Name)
 	if err != nil {
-		return err
+		var sqliteErr sqlite3.Error
+		if errors.As(err, &sqliteErr) {
+			if int(sqliteErr.Code) != 19 && int(sqliteErr.ExtendedCode) != 1811 {
+				return err
+			}
+		}
 	}
 
 	if g.ID != "" {
@@ -63,28 +68,37 @@ func (a Archiver) IndexGuild(guild string) error {
 		if err != nil {
 			log.Error(err)
 		}
-		// if iconHash != g.Icon {
-		// 	log.Println("Mismatch icon hashes")
-		// }
+
 		//Insert and download guild icon if different.  If g.Icon != select icon_hash from guild_icon ORDER BY date ASC LIMIT 1
 
 		err = a.Db.InsertGuildIcons(g.ID, iconHash)
 		if err != nil {
-			return err
+			var sqliteErr sqlite3.Error
+			if errors.As(err, &sqliteErr) {
+				if int(sqliteErr.Code) != 19 && int(sqliteErr.ExtendedCode) != 1811 {
+					return err
+				}
+			}
 		}
 	}
-	if g.Banner != "" {
-		bannerHash, err := common.DownloadFile(g.BannerURL(), g.ID, a.Args.MediaLocation, true)
+	var bannerHash string
+	if g.BannerURL() != "" {
+		bannerHash, err = common.DownloadFile(g.BannerURL(), g.ID, a.Args.MediaLocation, true)
 		if err != nil {
 			log.Error(err)
 		}
 		//Insert and download guild banner if different
-
-		err = a.Db.InsertGuildBanner(g.ID, bannerHash)
-		if err != nil {
-			return err
+	}
+	err = a.Db.InsertGuildBanner(g.ID, bannerHash)
+	if err != nil {
+		var sqliteErr sqlite3.Error
+		if errors.As(err, &sqliteErr) {
+			if int(sqliteErr.Code) != 19 && int(sqliteErr.ExtendedCode) != 1811 {
+				return err
+			}
 		}
 	}
+
 	//Update guild with new metadata (if any)
 	err = a.Db.UpdateGuildMetaTransaction(g.ID)
 	return err
@@ -105,6 +119,11 @@ func (a Archiver) IndexChannel(channel string) error {
 	}
 
 	err = a.InsertGuildID(c.GuildID)
+	if err != nil {
+		return err
+	}
+
+	err = a.IndexGuild(c.GuildID)
 	if err != nil {
 		return err
 	}

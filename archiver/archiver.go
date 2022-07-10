@@ -114,6 +114,7 @@ func InitCli() (models.JobArgs, models.ArchiverArgs) {
 	mediaLocation := flag.String("media-location", "media", "Set location to store attachments and media")
 	version := flag.Bool("version", false, "Checks version")
 	logging := flag.Bool("log", true, "Verbose logging to file")
+	progress := flag.Bool("progress", false, "Displays progress bar in terminal")
 	flag.Parse()
 
 	if *version {
@@ -150,6 +151,7 @@ func InitCli() (models.JobArgs, models.ArchiverArgs) {
 		ListenChannels:      strings.Split(*listenChannels, ","),
 		ListenGuilds:        strings.Split(*listenGuilds, ","),
 		Logging:             *logging,
+		Progress:            *progress,
 	}
 
 	if *guild != "" && *channel != "" {

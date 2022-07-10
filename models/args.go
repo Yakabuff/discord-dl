@@ -24,6 +24,7 @@ type ArchiverArgs struct {
 	ListenChannels      []string
 	ListenGuilds        []string
 	Logging             bool
+	Progress            bool
 }
 
 type Mode int

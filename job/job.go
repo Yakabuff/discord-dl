@@ -192,14 +192,6 @@ func (a *JobQueue) ExecJobArgs(j models.JobArgs, job *Job) {
 			// index guild metadata
 			// queue channels from list
 			job.Status = RUNNING
-			err := a.Archiver.IndexGuild(job.Snowflake)
-			if err != nil {
-				job.Error = err
-				job.Status = ERROR
-				log.Error(err)
-				a.Wg.Done()
-				return
-			}
 
 			guilds, err := a.Archiver.GetChannelsGuild(j.Guild)
 			if err != nil {
@@ -213,7 +205,11 @@ func (a *JobQueue) ExecJobArgs(j models.JobArgs, job *Job) {
 			for _, val := range guilds {
 				ja := models.JobArgs{Mode: models.CHANNEL, Before: job.Args.Before, After: job.Args.After, FastUpdate: job.Args.FastUpdate, Guild: "", Channel: val}
 				jobtmp := NewJob(ja)
-				a.Enqueue(jobtmp)
+				err = a.Enqueue(jobtmp)
+				//If queue full, exit with error
+				if err != nil {
+					break
+				}
 			}
 			if err != nil {
 				job.Status = ERROR
