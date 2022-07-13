@@ -109,22 +109,26 @@ func (a Archiver) IndexChannel(channel string) error {
 
 	c, err := a.Dg.Channel(channel)
 	if err != nil {
+		log.Error(err)
 		return err
 	}
 
 	//Insert channel ID
 	err = a.InsertChannelID(c.ID)
 	if err != nil {
+		log.Error(err)
 		return err
 	}
 
 	err = a.InsertGuildID(c.GuildID)
 	if err != nil {
+		log.Error(err)
 		return err
 	}
 
 	err = a.IndexGuild(c.GuildID)
 	if err != nil {
+		log.Error(err)
 		return err
 	}
 
@@ -133,6 +137,7 @@ func (a Archiver) IndexChannel(channel string) error {
 		var sqliteErr sqlite3.Error
 		if errors.As(err, &sqliteErr) {
 			if int(sqliteErr.Code) != 19 && int(sqliteErr.ExtendedCode) != 1811 {
+				log.Error(err)
 				return err
 			}
 		}
@@ -143,12 +148,14 @@ func (a Archiver) IndexChannel(channel string) error {
 		var sqliteErr sqlite3.Error
 		if errors.As(err, &sqliteErr) {
 			if int(sqliteErr.Code) != 19 && int(sqliteErr.ExtendedCode) != 1811 {
+				log.Error(err)
 				return err
 			}
 		}
 	}
 	err = a.Db.UpdateChannelMetaTransaction(c.ID, c.IsThread(), c.GuildID)
 	if err != nil {
+		log.Error(err)
 		return err
 	}
 

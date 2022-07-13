@@ -158,19 +158,19 @@ func (db Db) UpdateGuildMetaTransaction(gid string) error {
 		tx.Rollback()
 		return err
 	}
-	row = tx.QueryRow("select guild_name from guild_names order by date_renamed DESC LIMIT 1;")
+	row = tx.QueryRow("select guild_name from guild_names where guild_id=$1 order by date_renamed DESC LIMIT 1;", gid)
 	err = row.Scan(&name)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	row = tx.QueryRow("select guild_icon_hash from guild_icons order by date_renamed DESC LIMIT 1;")
+	row = tx.QueryRow("select guild_icon_hash from guild_icons where guild_id=$1 order by date_renamed DESC LIMIT 1;", gid)
 	err = row.Scan(&icon)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	row = tx.QueryRow("select guild_banner_hash from guild_banners order by date_renamed DESC LIMIT 1;")
+	row = tx.QueryRow("select guild_banner_hash from guild_banners where guild_id=$1 order by date_renamed DESC LIMIT 1;", gid)
 	err = row.Scan(&banner)
 	if err != nil {
 		tx.Rollback()
@@ -199,13 +199,13 @@ func (db Db) UpdateChannelMetaTransaction(cid string, isThread bool, gid string)
 		tx.Rollback()
 		return err
 	}
-	row = tx.QueryRow("select channel_name from channel_names order by date_renamed DESC LIMIT 1;")
+	row = tx.QueryRow("select channel_name from channel_names where channel_id=$1 order by date_renamed DESC LIMIT 1;", cid)
 	err = row.Scan(&name)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	row = tx.QueryRow("select channel_topic from channel_topics order by date_renamed DESC LIMIT 1;")
+	row = tx.QueryRow("select channel_topic from channel_topics where channel_id=$1 order by date_renamed DESC LIMIT 1;", cid)
 	err = row.Scan(&topic)
 	if err != nil {
 		tx.Rollback()

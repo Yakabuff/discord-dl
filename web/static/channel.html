@@ -4,6 +4,7 @@
         <style>
             table, th, td {
             border: 1px solid;
+            border-collapse: collapse;
             }
         </style>
     </head>
@@ -77,6 +78,10 @@
                                 </tr>
                                 {{end}}
                             </table>
+
+                            {{if .Edits}}
+                            <details>
+                            <summary>Edits</summary>
                             {{range .Edits}}
                                 <table>
                                     <tr>
@@ -89,7 +94,12 @@
                                     </tr>
                                 </table>
                             {{ end }}
+                            </details>  
+                            {{end}}
 
+                            {{if .Embeds}}
+                            <details>
+                                <summary>Embeds</summary>
                             {{range .Embeds}}
                                 <div class = "embed">
                                     <table>
@@ -196,7 +206,12 @@
                                     </table>
                                 </div>
                             {{ end }}
+                            </details>
+                            {{end}}
 
+                            {{if .Attachments}}
+                            <details>
+                            <summary>Attachments:</summary>
                             {{range .Attachments}}
                                 <div class = "attachment">
                                     <table>
@@ -235,6 +250,9 @@
                                     </table>
                                 </div>
                             {{ end }}
+                            </details>
+                            {{end}}
+
                         </ul>
                     </div>
                 {{ end }}
