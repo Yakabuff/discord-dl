@@ -106,7 +106,9 @@ func (a Archiver) IndexGuild(guild string) error {
 
 //Index channel metadata: topic, name, guild it belongs to, channel type
 func (a Archiver) IndexChannel(channel string) error {
-
+	if a.Args.Output == "" {
+		return nil
+	}
 	c, err := a.Dg.Channel(channel)
 	if err != nil {
 		log.Error(err)

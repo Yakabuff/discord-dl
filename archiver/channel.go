@@ -12,6 +12,7 @@ import (
 	"github.com/yakabuff/discord-dl/common"
 	"github.com/yakabuff/discord-dl/db"
 	"github.com/yakabuff/discord-dl/job"
+	"github.com/yakabuff/discord-dl/models"
 )
 
 func (a Archiver) ChannelDownload(channel string, fastUpdate bool, after string, before string, state job.JobState) error {
@@ -123,6 +124,7 @@ func (a Archiver) DownloadRangeDate(after string, before string, channel_id stri
 func (a Archiver) DownloadMessages(before_id string, after_id string, channel_id string, guild_id string, fast_update bool, state job.JobState) error {
 	var _beforeid string = before_id
 	var _afterid string = after_id
+
 	messages, error := a.Dg.ChannelMessages(channel_id, 100, before_id, "", "")
 	if error != nil {
 		log.Error(error)
@@ -133,18 +135,16 @@ func (a Archiver) DownloadMessages(before_id string, after_id string, channel_id
 	var in_range bool = true
 	for len(messages) != 0 && in_range {
 		for _, m := range messages {
-			// timestamp, _ := discordgo.SnowflakeTimestamp(m.ID)
+
 			id := m.ID
-			// content := m.Content;
-			// author_id := m.Author.ID;
-			// author_username := m.Author.Username;
+
 			m.GuildID = guild_id
 			if after_id != "" {
 				if id > after_id {
 					// log.Printf("Downloading message %s %s\n", m.Timestamp, m.ID)
 					before_id = id
 					//insert into db
-					err := a.InsertMessage(m, fast_update, a.Args.DownloadMedia)
+					err := a.ProcessMessages(m, fast_update, a.Args.DownloadMedia, state.Id)
 					if err != nil {
 						if errors.Is(err, db.UniqueConstraintError) {
 							return nil
@@ -159,11 +159,14 @@ func (a Archiver) DownloadMessages(before_id string, after_id string, channel_id
 					}
 
 					//Fetch threads if exist
-					if m.Type == 21 {
-						log.Println("Thread spotted. Traversing thread: " + m.Thread.ID)
-						err := a.DownloadMessages("", "", m.Thread.ID, m.Thread.GuildID, fast_update, state)
+					if m.Thread != nil {
+						log.Println("Thread spotted. Queueing thread: " + m.Thread.ID)
+
+						ja := models.JobArgs{Mode: models.CHANNEL, Before: "", After: "", FastUpdate: fast_update, Guild: "", Channel: m.Thread.ID}
+						job := job.NewJob(ja)
+						err := a.Queue.Enqueue(job)
 						if err != nil {
-							return err
+							log.Error(err)
 						}
 					}
 
@@ -173,7 +176,7 @@ func (a Archiver) DownloadMessages(before_id string, after_id string, channel_id
 				}
 			} else {
 				// log.Printf("Downloading message %s %s %s\n", m.Timestamp, m.ID, m.ChannelID)
-				err := a.InsertMessage(m, fast_update, a.Args.DownloadMedia)
+				err := a.ProcessMessages(m, fast_update, a.Args.DownloadMedia, state.Id)
 				before_id = id
 				if err != nil {
 					if errors.Is(err, db.UniqueConstraintError) {
@@ -188,12 +191,16 @@ func (a Archiver) DownloadMessages(before_id string, after_id string, channel_id
 				}
 
 				if m.Thread != nil {
-					// log.Println("Thread spotted. Traversing thread: " + m.Thread.ID)
-					a.IndexChannel(m.Thread.ID)
-					err := a.DownloadMessages("", "", m.Thread.ID, m.Thread.GuildID, fast_update, state)
+
+					log.Info("Thread spotted. Traversing thread: " + m.Thread.ID)
+
+					ja := models.JobArgs{Mode: models.CHANNEL, Before: "", After: "", FastUpdate: fast_update, Guild: "", Channel: m.Thread.ID}
+					job := job.NewJob(ja)
+					err := a.Queue.Enqueue(job)
 					if err != nil {
-						return err
+						log.Error(err)
 					}
+
 				}
 			}
 		}

@@ -11,7 +11,7 @@ It's safe to say that forums, the medium that has once acted as the internet's p
 
 **Note:** While I recognize that there is no alternative to selfbots especially when it comes to archiving, it is unfortunately against Discord TOS.  Use at your own discretion.
 
-**Master branch is experimental and unstable. Please use a stable release.  The stable release is also highly experimental, unfortunately**
+**Master branch is experimental and unstable. Please use a stable release.  The stable release is also highly experimental, unfortunately :^)**
 
 ## Installation
 
@@ -45,7 +45,7 @@ It's safe to say that forums, the medium that has once acted as the internet's p
 
 - Ability to 'rebuild' the server in the event of deletion
 - Cloud object storage support
-- Federated instances via simple crawler
+- Postgres support
 
 ## Instructions
 
@@ -87,7 +87,8 @@ It's safe to say that forums, the medium that has once acted as the internet's p
     - `--deployPort`
         - Specify port you want the webserver to run on. Will default to 8080 if empty
     -  `--blacklisted-channels`
-        - Specify channels you which to exclude.  Delimit the channels by a comma. ex: --blacklisted-channels=channel1id,channel2id,channel3id
+        - Specify channels you which to exclude.  Delimit the channels by a comma. 
+        - ex: `--blacklisted-channels=channel1id,channel2id,channel3id`
 
 - ## Examples:
     - Downloading messages and media from a channel after Jan 1st 2018:

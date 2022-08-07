@@ -27,10 +27,12 @@ func main() {
 	var theArchiver = archiver.Archiver{Args: args}
 
 	theArchiver.InitLogger()
-
-	db, err := db.Init_db(theArchiver.Args.Output)
-	if err != nil {
-		panic(err.Error())
+	if args.Output != "" {
+		db, err := db.Init_db(theArchiver.Args.Output)
+		if err != nil {
+			panic(err.Error())
+		}
+		theArchiver.Db = *db
 	}
 
 	errDg, dg := theArchiver.CreateConnection()
@@ -41,9 +43,8 @@ func main() {
 
 	theArchiver.Dg = dg
 
-	theArchiver.Db = *db
 	//Listener and webview
-	err = theArchiver.ParseArgs()
+	err := theArchiver.ParseArgs()
 	if err != nil {
 		panic(err.Error())
 	}

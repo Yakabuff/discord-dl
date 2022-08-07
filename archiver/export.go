@@ -1,29 +1,21 @@
 package archiver
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/yakabuff/discord-dl/common"
-	"github.com/yakabuff/discord-dl/db"
 	"github.com/yakabuff/discord-dl/models"
 )
 
-func (a Archiver) InsertMessage(m *discordgo.Message, fastUpdate bool, downloadMedia bool) error {
-	//Try adding message to DB
-	//fast update, unique constraint error -> log and skip message(return fast_update error)
-	//fast update, non unique constraint error -> return error
-	//non fast update, unique constriant error -> log, continue(do not return anything) and download edits, attachments, embeds
-	//non fast update non unique constraint error -> return error
-
-	//Add to edits table if does not exist
-	//Add to attachments if not exist
-	//Add to embed if not exist
-
+func (a Archiver) ExportMessage(m *discordgo.Message, downloadMedia bool, jobId string) error {
 	timestamp, _ := discordgo.SnowflakeTimestamp(m.ID)
 	timestamp_unix := timestamp.Unix()
 	id := m.ID
@@ -45,38 +37,9 @@ func (a Archiver) InsertMessage(m *discordgo.Message, fastUpdate bool, downloadM
 	if m.Thread != nil {
 		threadId = m.Thread.ID
 	}
-	msg := models.NewMessage(id, channel_id, guild_id, timestamp_unix, content, author_id, author_username, reply_to, editedTimestamp, threadId)
 
-	errMsg := a.Db.InsertMessage(msg)
-
-	if fastUpdate == true && errMsg != nil {
-		//check for unique constraint err. If found, exit program
-		if !errors.Is(errMsg, db.UniqueConstraintError) {
-			log.Error(errMsg)
-			return errMsg
-		} else {
-			log.Info("Fast update triggered")
-			//return fast update error
-			return models.FastUpdateError
-		}
-
-	} else if fastUpdate == false && errMsg != nil {
-		if !errors.Is(errMsg, db.UniqueConstraintError) {
-			log.Println(errMsg)
-			return errMsg
-		}
-	}
-
-	//Check if it is edited message.
-	//If message is edited, insert edit. Check if uniqueConstraintError
-	if m.EditedTimestamp != nil {
-		edit := models.NewEdit(id, editedTimestamp, content)
-		errEdit := a.InsertEdit(edit)
-		if errEdit != nil {
-			log.Error(errEdit)
-			return errEdit
-		}
-	}
+	var embeds []models.Embed
+	var attachments []models.Attachment
 
 	//TODO: If hash exists for embed, don't redownload. Sometimes, embed images change eg: github -> num stars goes up in image
 	//If it has embed, download embed
@@ -165,11 +128,7 @@ func (a Archiver) InsertMessage(m *discordgo.Message, fastUpdate bool, downloadM
 			embed.EmbedVideoHash = sum
 		}
 
-		errEmbed := a.InsertEmbed(embed)
-		if errEmbed != nil {
-			log.Error(errEmbed)
-			return errEmbed
-		}
+		embeds = append(embeds, embed)
 	}
 
 	for _, i := range m.Attachments {
@@ -183,53 +142,131 @@ func (a Archiver) InsertMessage(m *discordgo.Message, fastUpdate bool, downloadM
 
 		attachment.AttachmentHash = hash
 
-		errAttachment := a.InsertAttachment(attachment)
-		if errAttachment != nil {
-			return errAttachment
+		attachments = append(attachments, attachment)
+	}
+	msg := models.NewMessageJson(id, channel_id, guild_id, timestamp_unix, content, author_id, author_username, reply_to, fmt.Sprintf("%d", editedTimestamp), threadId, embeds, attachments)
+
+	err := WriteMessageJson(msg, jobId)
+	return err
+}
+
+// We will need to incrementally append to the file.
+// It will be impossible to put 1million messages all in a struct
+// We will need to decompose the channel into messages and append them individually
+// 1) Files will be <channel snowflake_jobid>.json
+// 2) Open file. Check if it is empty.
+// 3) If not empty, check if there is content. Check json array ([] symbols)
+// 4) If empty, construct json document symbols
+// 5) If not empty, delete ] symbol.  Add message struct. Delete , symbol.  Re add ] symbol
+// file.Seek(0, 2) to go to end of file
+func WriteMessageJson(msg models.MessageJson, jobID string) error {
+	name := msg.ChannelId + "_" + jobID + ".json"
+	var file *os.File
+	//If empty, create, else read last char of file. if ] character, assume it is json. delete char, append and re add ].  if ] not found, append [, append msg and append ]
+
+	_, err := os.Stat(name)
+
+	if errors.Is(err, os.ErrNotExist) {
+
+		file, err = os.Create(name)
+		if err != nil {
+			return err
 		}
-	}
-	return nil
-}
+		defer file.Close()
+		//Write [ character
+		file.WriteString("[\n")
+		//Write message (no trailing comma)
+		b, err := json.MarshalIndent(msg, "", "\t")
+		if err != nil {
+			return err
+		}
+		file.WriteString(string(b) + "\n")
+		//Write ] character
+		file.WriteString("]")
 
-//Note on threads.
-//if MessageType=21, this signifies thread top message.  this message has a threads field which is a channel ID
-//All messages in the thread has the channelID of that thread and not the channelID the thread is in.
-//Note on media
-//
-
-func (a Archiver) InsertEdit(edit models.Edit) error {
-	errEdit := a.Db.InsertEdit(edit)
-	if !errors.Is(errEdit, db.UniqueConstraintError) {
-		return errEdit
-	}
-	return nil
-}
-
-func (a Archiver) InsertEmbed(embed models.Embed) error {
-	errEmbed := a.Db.InsertEmbed(embed)
-	if !errors.Is(errEmbed, db.UniqueConstraintError) {
-		return errEmbed
-	}
-	return nil
-}
-
-func (a Archiver) InsertAttachment(attachment models.Attachment) error {
-	errAttachment := a.Db.InsertAttachment(attachment)
-	if !errors.Is(errAttachment, db.UniqueConstraintError) {
-		return errAttachment
-	}
-	return nil
-}
-
-func (a Archiver) ProcessMessages(m *discordgo.Message, fastUpdate bool, downloadMedia bool, id string) error {
-	//TODO: hook into channel.go
-	if a.Args.Output != "" {
-		//If database, insertMessage
-		err := a.InsertMessage(m, fastUpdate, downloadMedia)
-		return err
 	} else {
-		//If export, export to file
-		err := a.ExportMessage(m, downloadMedia, id)
+		file, err = os.OpenFile(name, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0777)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+		// If file already exists, we can assume that there are already messages in the file
+		// Delete last ] character. If does not exist, return error
+
+		err := deleteLastSquareBracket(file)
+		if err != nil {
+			log.Error(err)
+			return err
+		}
+		// Write message (prefixed comma)
+		b, err := json.MarshalIndent(msg, "", "\t")
+		if err != nil {
+			return err
+		}
+		file.WriteString("," + "\n" + string(b) + "\n")
+		// Write ] character
+		file.WriteString("]")
+	}
+
+	return nil
+}
+
+//Verify last line ']' and first line '['
+//Second line = '{' and second last line = '}'
+func verifyExportStructure(f *os.File) bool {
+	valid := false
+	char := make([]byte, 1)
+	f, _ = os.Open(f.Name())
+	f.Seek(-1, io.SeekEnd)
+	f.Read(char)
+
+	if char[0] == 93 {
+		valid = true
+	} else {
+		valid = false
+	}
+
+	f.Seek(-2, io.SeekEnd)
+	f.Read(char)
+
+	if char[0] == 125 {
+		valid = true
+	} else {
+		valid = false
+	}
+
+	f.Seek(1, io.SeekStart)
+	f.Read(char)
+
+	if char[0] == 91 {
+		valid = true
+	} else {
+		valid = false
+	}
+
+	f.Seek(2, io.SeekStart)
+	f.Read(char)
+
+	if char[0] == 123 {
+		valid = true
+	} else {
+		valid = false
+	}
+
+	return valid
+}
+
+//Truncate file by 2 bytes. (\n and ])
+func deleteLastSquareBracket(file *os.File) error {
+	if verifyExportStructure(file) == false {
+		return errors.New("Invalid export structure")
+	}
+
+	stat, err := file.Stat()
+	if err != nil {
 		return err
 	}
+	filesize := stat.Size()
+
+	return os.Truncate(file.Name(), filesize-2)
 }

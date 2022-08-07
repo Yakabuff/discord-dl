@@ -63,6 +63,7 @@ type JobState struct {
 	Error    *error
 	Status   *Status
 	Bar      *mpb.Bar
+	Id       string
 }
 
 type Status int
@@ -225,7 +226,7 @@ func (a *JobQueue) ExecJobArgs(j models.JobArgs, job *Job) {
 			job.Status = RUNNING
 			bar := newBar(a.Progress, job.Snowflake, job.Id)
 			a.Wg.Add(1)
-			var state JobState = JobState{Progress: &job.Progress, Error: &job.Error, Status: &job.Status, Bar: bar}
+			var state JobState = JobState{Progress: &job.Progress, Error: &job.Error, Status: &job.Status, Bar: bar, Id: job.Id}
 			err := a.Archiver.IndexChannel(j.Channel)
 			if err != nil {
 				log.Error(err)

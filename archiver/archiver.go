@@ -72,10 +72,7 @@ func ParseConfigFile(fileName string, args *models.ArchiverArgs) error {
 func checkFlagMode(input string, guild string, channel string) models.Mode {
 	var count int
 	var mode models.Mode
-	// if input != "" {
-	// 	count++
-	// 	mode = models.INPUT
-	// }
+
 	if guild != "" {
 		count++
 		mode = models.GUILD
@@ -84,6 +81,7 @@ func checkFlagMode(input string, guild string, channel string) models.Mode {
 		count++
 		mode = models.CHANNEL
 	}
+
 	if count == 1 {
 		return mode
 	} else if count > 1 {
@@ -115,6 +113,7 @@ func InitCli() (models.JobArgs, models.ArchiverArgs) {
 	version := flag.Bool("version", false, "Checks version")
 	logging := flag.Bool("log", true, "Verbose logging to file")
 	progress := flag.Bool("progress", false, "Displays progress bar in terminal")
+	export := flag.String("export", "output.json", "Exports chat to file")
 	flag.Parse()
 
 	if *version {
@@ -152,6 +151,12 @@ func InitCli() (models.JobArgs, models.ArchiverArgs) {
 		ListenGuilds:        strings.Split(*listenGuilds, ","),
 		Logging:             *logging,
 		Progress:            *progress,
+		Export:              *export,
+	}
+
+	if *export != "" && *output != "" {
+		fmt.Fprintln(os.Stderr, "Cannot use --export and --output together")
+		os.Exit(1)
 	}
 
 	if *guild != "" && *channel != "" {

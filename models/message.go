@@ -50,3 +50,48 @@ func NewMessage(MessageId string, ChannelId string, GuildId string, MessageTimes
 }
 
 var FastUpdateError = errors.New("Reached downloaded message")
+
+type MessageJson struct {
+	MessageId        string
+	ChannelId        string
+	GuildId          string
+	MessageTimestamp int64
+	Content          string
+	SenderId         string
+	SenderName       string
+	ReplyTo          string
+	EditTime         string
+	ThreadId         string
+	Embeds           []Embed
+	Attachments      []Attachment
+}
+
+func NewMessageJson(MessageId string,
+	ChannelId string,
+	GuildId string,
+	MessageTimestamp int64,
+	Content string,
+	SenderId string,
+	SenderName string,
+	ReplyTo string,
+	EditTime string,
+	ThreadId string,
+	Embeds []Embed,
+	Attachments []Attachment) MessageJson {
+
+	return MessageJson{
+		MessageId,
+		ChannelId,
+		GuildId,
+		MessageTimestamp,
+		Content,
+		SenderId,
+		SenderName,
+		ReplyTo,
+		EditTime,
+		ThreadId,
+		Embeds,
+		Attachments,
+	}
+
+}
