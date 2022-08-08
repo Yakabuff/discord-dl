@@ -222,8 +222,8 @@ func (a Archiver) InsertAttachment(attachment models.Attachment) error {
 }
 
 func (a Archiver) ProcessMessages(m *discordgo.Message, fastUpdate bool, downloadMedia bool, id string) error {
-	//TODO: hook into channel.go
-	if a.Args.Output != "" {
+
+	if a.Args.Output != "" && a.Args.Export == false {
 		//If database, insertMessage
 		err := a.InsertMessage(m, fastUpdate, downloadMedia)
 		return err

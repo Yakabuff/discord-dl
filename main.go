@@ -21,32 +21,45 @@ func main() {
 	if args.Input != "" {
 		err := archiver.ParseConfigFile(args.Input, &args)
 		if err != nil {
-			panic(err.Error())
+			fmt.Fprintln(os.Stderr, err.Error())
+			os.Exit(1)
 		}
 	}
+
+	if !archiver.ValidFlags(jobArgs, args) {
+		fmt.Fprintln(os.Stderr, "Invalid flags")
+		os.Exit(1)
+	}
+
 	var theArchiver = archiver.Archiver{Args: args}
 
 	theArchiver.InitLogger()
 	if args.Output != "" {
 		db, err := db.Init_db(theArchiver.Args.Output)
 		if err != nil {
-			panic(err.Error())
+			fmt.Fprintln(os.Stderr, err.Error())
+			os.Exit(1)
 		}
 		theArchiver.Db = *db
 	}
 
-	errDg, dg := theArchiver.CreateConnection()
-	if errDg != nil {
-		log.Println(theArchiver.Args.Token)
-		panic(errDg.Error())
+	if args.Token != "" {
+		errDg, dg := theArchiver.CreateConnection()
+		if errDg != nil {
+			// log.Println(theArchiver.Args.Token)
+			fmt.Fprintln(os.Stderr, errDg.Error())
+			os.Exit(1)
+		}
+
+		theArchiver.Dg = dg
+
+		theArchiver.InitListener()
 	}
 
-	theArchiver.Dg = dg
-
-	//Listener and webview
-	err := theArchiver.ParseArgs()
+	err := theArchiver.InitWeb()
 	if err != nil {
-		panic(err.Error())
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
 	}
 	theArchiver.Queue = job.NewJobQueue(&theArchiver, theArchiver.Args.Logging)
 

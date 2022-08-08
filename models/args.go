@@ -25,7 +25,7 @@ type ArchiverArgs struct {
 	ListenGuilds        []string
 	Logging             bool
 	Progress            bool
-	Export              string
+	Export              bool
 }
 
 type Mode int

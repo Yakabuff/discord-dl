@@ -1,6 +1,7 @@
 package archiver
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -43,13 +44,20 @@ func (a Archiver) InitLogger() {
 		logrus.SetOutput(ioutil.Discard)
 	}
 }
-func (a Archiver) ParseArgs() error {
-	//Either listening or web deploy
-	if a.Args.Listen == true && strings.HasPrefix(a.Args.Token, "Bot") {
+
+func (a Archiver) InitListener() {
+	if a.Args.Listen && strings.HasPrefix(a.Args.Token, "Bot") {
 		log.Info("Listening for changes...")
 		a.addHandlers()
 	}
-	if a.Args.Deploy == true {
+}
+
+func (a Archiver) InitWeb() error {
+
+	if a.Args.Deploy {
+		if a.Db.DbConnection == nil {
+			return errors.New("No db connection")
+		}
 		log.Info("Starting webview...")
 
 		a.Web = web.NewWeb(a.Db, a.Args.DeployPort, a.Args.MediaLocation, &a.Queue, a.Args.Logging)
@@ -91,6 +99,56 @@ func checkFlagMode(input string, guild string, channel string) models.Mode {
 	}
 }
 
+//Returns true if valid
+func ValidFlags(job models.JobArgs, archiver models.ArchiverArgs) bool {
+	if archiver.Export && archiver.Output != "" {
+		fmt.Fprintln(os.Stderr, "Cannot use --export and --output together")
+		return false
+	}
+
+	if job.Guild != "" && job.Channel != "" {
+		fmt.Fprintln(os.Stderr, "Cannot use --guild and --channel together")
+		return false
+	}
+
+	// If channel or guild in job args AND output DB empty / export false, exit
+	if job.Guild != "" || job.Channel != "" {
+		if archiver.Output == "" && archiver.Export == false && archiver.Input == "" {
+			fmt.Fprintln(os.Stderr, "Must have an output")
+			return false
+		}
+		if archiver.Output == "" && archiver.Export == false {
+			fmt.Fprintln(os.Stderr, "Must have an output")
+			return false
+		}
+	}
+
+	if archiver.Deploy {
+		if archiver.Output == "" {
+			fmt.Fprintln(os.Stderr, "Cannot run webview without database connection")
+			return false
+		}
+	}
+
+	if (job.Before != "" || job.After != "") && job.FastUpdate != false {
+		fmt.Fprintln(os.Stderr, "Cannot have before/after flags with fast-update")
+		return false
+	}
+
+	if job.Before != "" && job.After != "" {
+		if strings.Contains(job.Before, "-") && !strings.Contains(job.After, "-") || !strings.Contains(job.Before, "-") && strings.Contains(job.After, "-") {
+			fmt.Fprintln(os.Stderr, "Before and after flags must be in the same format")
+			return false
+		}
+
+		if !strings.Contains(job.Before, "-") && !strings.Contains(job.After, "-") {
+			fmt.Fprintln(os.Stderr, "Invalid date format")
+			return false
+		}
+	}
+	return true
+}
+
 func InitCli() (models.JobArgs, models.ArchiverArgs) {
 
 	// progress := flag.Bool("progress", false, "Displays progress of task. Enabling this will output verbose logging")
@@ -113,7 +171,7 @@ func InitCli() (models.JobArgs, models.ArchiverArgs) {
 	version := flag.Bool("version", false, "Checks version")
 	logging := flag.Bool("log", true, "Verbose logging to file")
 	progress := flag.Bool("progress", false, "Displays progress bar in terminal")
-	export := flag.String("export", "output.json", "Exports chat to file")
+	export := flag.Bool("export", false, "Exports chat to file")
 	flag.Parse()
 
 	if *version {
@@ -154,32 +212,8 @@ func InitCli() (models.JobArgs, models.ArchiverArgs) {
 		Export:              *export,
 	}
 
-	if *export != "" && *output != "" {
-		fmt.Fprintln(os.Stderr, "Cannot use --export and --output together")
+	if !ValidFlags(job, args) {
 		os.Exit(1)
 	}
-
-	if *guild != "" && *channel != "" {
-		fmt.Fprintln(os.Stderr, "Cannot use --guild and --channel together")
-		os.Exit(1)
-	}
-
-	if (*before != "" || *after != "") && *fastUpdate != false {
-		fmt.Fprintln(os.Stderr, "Cannot have before/after flags with fast-update")
-		os.Exit(1)
-	}
-
-	if *before != "" && *after != "" {
-		if strings.Contains(*before, "-") && !strings.Contains(*after, "-") || !strings.Contains(*before, "-") && strings.Contains(*after, "-") {
-			fmt.Fprintln(os.Stderr, "Before and after flags must be in the same format")
-			os.Exit(1)
-		}
-
-		if !strings.Contains(*before, "-") && !strings.Contains(*after, "-") {
-			fmt.Fprintln(os.Stderr, "Invalid date format")
-			os.Exit(1)
-		}
-	}
-
 	return job, args
 }

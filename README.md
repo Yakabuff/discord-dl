@@ -89,6 +89,10 @@ It's safe to say that forums, the medium that has once acted as the internet's p
     -  `--blacklisted-channels`
         - Specify channels you which to exclude.  Delimit the channels by a comma. 
         - ex: `--blacklisted-channels=channel1id,channel2id,channel3id`
+    -  `--export`
+        - Export channel to json if set to true. Defaults to false
+        - Cannot be used in conjunction with a database connection
+        - ex: `--export=true`
 
 - ## Examples:
     - Downloading messages and media from a channel after Jan 1st 2018:
